@@ -18,28 +18,51 @@ A process is an unordered collection of named steps, the name of an initial step
 
 # SYNOPSIS
 
-    package My::Application::LongProcess;
+First write a class to represent your long running set of steps
+
+    package My::Application::MyLongProcess;
+
+    use Moose;
+    extends qw/Schedule::LongSteps::Process/;
+
+    has 'thing' => ( is => 'ro', required => 1); # Some mandatory context provided by your application at each regular run.
 
     # The first step should be executed after the process is installed on the target.
     sub build_first_step{
       my ($self) = @_;
-      return Schedule::LongSteps::Step->new({ what => 'do_stuff1', when => DateTime->now(), args => [ .. ]});
+      return Schedule::LongSteps::Step->new({ what => 'do_stuff1', when => DateTime->now() });
     }
 
-    sub build_steps{
-        return {
-           'do_stuff1' => sub{
-              my ($step, $args) = @_;
+    sub do_stuff1{
+       my ($self, $step) = @_;
 
-              .. Do some stuff and return the next step to execute ..
+        my $args = $step->args();
+        my $thing = $self->thing();
 
-               return $step->update({ what => 'do_stuff2', when => DateTime->... , args => [ 'some', 'args' ] });
-           },
-           'do_stuff2' => sub{
-              my ($step, $args) = @_;
+       .. Do some stuff and return the next step to execute ..
 
-              .. Do some stuff and terminate the process for ever  ..
-              return $step->delete();
-           }
-       };
-    };
+        return $step->update({ what => 'do_stuff2', when => DateTime->... , args => [ 'some', 'args' ] });
+    }
+
+    sub do_stuff2{
+        .. Do some stuff and terminate the process for ever  ..
+         return $step->delete();
+    }
+
+    __PACKAGE__->meta->make_immutable();
+
+Then in you main application:
+
+    my $longsteps = Schedule::LongSteps->new();
+    ...
+    $longsteps->instanciate_process('My::Application::MyLongProcess', [ some, init, args ]);
+
+Then regularly (in a cron, or a recurring callback):
+
+    my $long_steps = Schedule::LongSteps->new(...);
+    ...
+
+    my $steps = $long_steps->due_steps();
+    while( my $step = $steps->next() ){
+      $step->execute({ thing => 'whatever' });
+    }
