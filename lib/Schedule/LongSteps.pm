@@ -1,8 +1,8 @@
-use strict;
-use warnings;
 package Schedule::LongSteps;
 
 # ABSTRACT: Manage sets of steps accross days, months, years.
+
+use Moose;
 
 =head1 NAME
 
@@ -16,13 +16,7 @@ An example of such a process would be: "After an order has been started, if more
 
 A serie of steps like that is usually a pain to implement and this is an attempt to provide a framework so it would make writing and testing such a process as easy as writing and testing an good old Class.
 
-=head1 CONCEPTS
-
-=head2 Process
-
-A process is an unordered collection of named steps, the name of an initial step
-
-=head1 SYNOPSIS
+=head1 QUICK START AND SYNPSIS
 
 First write a class to represent your long running set of steps
 
@@ -31,49 +25,94 @@ First write a class to represent your long running set of steps
   use Moose;
   extends qw/Schedule::LongSteps::Process/;
 
+  # Some contextual things.
   has 'thing' => ( is => 'ro', required => 1); # Some mandatory context provided by your application at each regular run.
 
   # The first step should be executed after the process is installed on the target.
   sub build_first_step{
     my ($self) = @_;
-    return Schedule::LongSteps::Step->new({ what => 'do_stuff1', when => DateTime->now() });
+    return $self->new_step({ what => 'do_stuff1', run_at => DateTime->now(), state => { some => 'initial', state => 0 } });
   }
 
   sub do_stuff1{
-     my ($self, $step) = @_;
+     my ($self) = @_;
 
-      my $args = $step->args();
+      # The starting state
+      my $state = $self->step()->state();
+
       my $thing = $self->thing();
 
      .. Do some stuff and return the next step to execute ..
 
-      return $step->update({ what => 'do_stuff2', when => DateTime->... , args => [ 'some', 'args' ] });
+      return $self->new_step({ what => 'do_stuff2', run_at => DateTime->... , state => [ 'some', 'jsonable', 'structure' ] , originator => $step });
   }
 
   sub do_stuff2{
-      .. Do some stuff and terminate the process for ever  ..
-       return $step->delete();
+      my ($self, $step) = @_;
+
+      $self->wait_for_steps('do_stuff1', 'do_stuff2' );
+
+      .. Do some stuff and terminate the process ..
+
+       my $args = $step->args()
+       if( ... ){
+           return Schedule::LongSteps::Step->new({ what => 'do_stuff1', run_at => DateTime->... , state => { some jsonable structure } });
+       }
+       return $self->final_step({ state => { the => final, state => 1 }  }) ;
   }
 
   __PACKAGE__->meta->make_immutable();
 
-Then in you main application:
+Then in you main application do this once per 'target':
 
-   my $longsteps = Schedule::LongSteps->new();
+   my $longsteps = Schedule::LongSteps->new(...);
    ...
-   $longsteps->instanciate_process('My::Application::MyLongProcess', [ some, init, args ]);
+
+   $longsteps->instanciate_process('My::Application::', [ the, init, arguments ]);
 
 Then regularly (in a cron, or a recurring callback):
 
-  my $long_steps = Schedule::LongSteps->new(...);
+  my $long_steps = Schedule::LongSteps->new(...); # Keep only one instance per process.
   ...
 
-  my $steps = $long_steps->due_steps();
-  while( my $step = $steps->next() ){
-    $step->execute({ thing => 'whatever' });
-  }
-
+  $long_steps->run_due_steps({ thing => 'whatever' });
 
 =cut
 
-1;
+has 'storage' => ( is => 'ro', isa => 'Schedule::LongSteps::Storage', required => 1);
+
+
+
+=head2 run_due_steps
+
+Runs all the due steps according to now(). Steps being run will all be
+
+=cut
+
+sub run_due_steps{
+    my ($self, $context) = @_;
+    $context ||= {};
+
+    my $steps = $self->storage->prepare_due_steps();
+
+    while( my $step = $steps->next() ){
+        my $process = $step->process_class()->new({ step => $step, %{$context} });
+
+        my $new_step = eval{ $step->what(); };
+        if( my $err = $@ ){
+            $step->update({ error => $err,
+                            run_at => undef
+                        });
+            next;
+        }
+
+        $step->update({
+            status => 'paused',
+            started_at => undef,
+            run_at => undef,
+            %{$new_step}
+        });
+    }
+}
+
+__PACKAGE__->meta->make_immutable();
