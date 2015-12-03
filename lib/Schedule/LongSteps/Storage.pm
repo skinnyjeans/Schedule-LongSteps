@@ -23,7 +23,7 @@ a new steps storage backend.
 
 sub prepare_due_steps{
     my ($self) = @_;
-    ...
+    die "Please implement this in $self";
 }
 
 
