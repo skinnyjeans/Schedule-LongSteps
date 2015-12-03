@@ -127,7 +127,8 @@ sub run_due_steps{
             $step->update({
                 status => 'error',
                 error => $err,
-                run_at => undef
+                run_at => undef,
+                run_id => undef,
             });
             next;
         }
@@ -135,6 +136,7 @@ sub run_due_steps{
         $step->update({
             status => 'paused',
             run_at => undef,
+            run_id => undef,
             %{$new_step_properties}
         });
     }
