@@ -15,6 +15,8 @@ plan skip_all => "DBIx::Class::Schema::Loader is required for this test."
 
 my $create_table = q|
 CREATE TABLE longsteps_step( id INTEGER PRIMARY KEY AUTOINCREMENT,
+                             process_class TEXT NOT NULL,
+                             process_id TEXT NOT NULL,
                              status TEXT NOT NULL DEFAULT 'pending',
                              what TEXT NOT NULL,
                              run_at TEXT DEFAULT NULL,
@@ -51,13 +53,13 @@ is( $storage->prepare_due_steps()->count() , 0 , "Ok zero due steps");
 # inside the LongSteps::Storage::DBIxClass code.
 my $dtf = $schema->storage()->datetime_parser();
 
-$storage->create_step({ what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
+$storage->create_step({ process_class => 'Blabla', process_id => 123, what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
 
 is( $storage->prepare_due_steps()->count() , 1 , "Ok one due step");
 is( $storage->prepare_due_steps()->count() , 0 , "Doing it again gives zero steps");
 
-$storage->create_step({ what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
-$storage->create_step({ what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
+$storage->create_step({ process_class => 'Blabla', process_id => 124, what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
+$storage->create_step({ process_class => 'Blabla', process_id => 124, what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
 
 my $steps = $storage->prepare_due_steps();
 is( $steps->count() , 2 , "Ok two steps to do");

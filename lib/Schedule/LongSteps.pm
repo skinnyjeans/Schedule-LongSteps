@@ -80,8 +80,28 @@ Then regularly (in a cron, or a recurring callback):
 =cut
 
 use Class::Load;
+use Log::Any qw/$log/;
 
-has 'storage' => ( is => 'ro', isa => 'Schedule::LongSteps::Storage', required => 1);
+use Schedule::LongSteps::Storage::Memory;
+
+has 'storage' => ( is => 'ro', isa => 'Schedule::LongSteps::Storage', lazy_build => 1);
+
+sub _build_storage{
+    my ($self) = @_;
+    $log->warn("No storage specified. Will use Memory storage");
+    return Schedule::LongSteps::Storage::Memory->new();
+}
+
+=head2 uuid
+
+Returns a L<Data::UUID> from the storage.
+
+=cut
+
+sub uuid{
+    my ($self) = @_;
+    return $self->storage()->uuid();
+}
 
 =head2 run_due_steps
 
@@ -94,25 +114,31 @@ sub run_due_steps{
     $context ||= {};
 
     my $steps = $self->storage->prepare_due_steps();
-
+    my $step_count = 0;
     while( my $step = $steps->next() ){
-        my $process = $step->process_class()->new({ step => $step, %{$context} });
+        Class::Load::load_class($step->process_class());
+        my $process = $step->process_class()->new({ process_id => $step->process_id(), step => $step, %{$context} });
+        my $process_method = $step->what();
 
-        my $new_step = eval{ $step->what(); };
+        $step_count++;
+
+        my $new_step_properties = eval{ $process->$process_method(); };
         if( my $err = $@ ){
-            $step->update({ error => $err,
-                            run_at => undef
-                        });
+            $step->update({
+                status => 'error',
+                error => $err,
+                run_at => undef
+            });
             next;
         }
 
         $step->update({
             status => 'paused',
-            started_at => undef,
             run_at => undef,
-            %{$new_step}
+            %{$new_step_properties}
         });
     }
+    return $step_count;
 }
 
 =head2 instanciate_process
@@ -131,15 +157,16 @@ sub instanciate_process{
     unless( $process_class->isa('Schedule::LongSteps::Process') ){
         confess("Class '$process_class' is not an instance of 'Schedule::LongSteps::Process'");
     }
-
-    my $process = $process_class->new( $build_args );
+    my $process = $process_class->new( { process_id => $self->uuid()->create_str(), %{$build_args} } );
     my $step_props = $process->build_first_step();
 
     my $step = $self->storage->create_step({
+        process_class => $process_class,
+        process_id => $process->process_id(),
         state => $init_state,
         %{$step_props}
     });
-    return;
+    return $step;
 }
 
 __PACKAGE__->meta->make_immutable();

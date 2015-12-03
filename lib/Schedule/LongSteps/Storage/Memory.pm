@@ -75,7 +75,9 @@ use Moose;
 use DateTime;
 
 has 'process_class' => ( is => 'ro', isa => 'Str', required => 1);
+has 'process_id' => ( is => 'ro', isa => 'Str', required => 1 );
 has 'status' => ( is => 'rw', isa => 'Str', default => 'pending' );
+has 'what' => ( is => 'rw' ,  isa => 'Str', required => 1);
 has 'run_at' => ( is => 'rw', isa => 'Maybe[DateTime]', default => sub{ undef; } );
 has 'run_id' => ( is => 'rw', isa => 'Maybe[Str]', default => sub{ undef; } );
 has 'state' => ( is => 'rw', default => sub{ {}; });
@@ -85,13 +87,11 @@ sub update{
     my ($self, $update_properties) = @_;
     $update_properties //= {};
 
+    # use Data::Dumper;
+    # warn "Updating with ".Dumper($update_properties);
+
     while( my ( $key, $value ) = each %{$update_properties} ){
-        if( defined ($value) ){
-            $self->$key( $value );
-        }else{
-            my $clearer = 'clear_'.$key;
-            $self->$clearer();
-        }
+        $self->$key( $value );
     }
 }
 

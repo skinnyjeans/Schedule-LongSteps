@@ -47,6 +47,10 @@ But the old 'id PRIMARY KEY AUTO_INCREMENT' (or any equivalent) will do.
 
 A VARCHAR long enough to hold  your L<Schedule::LongSteps::Process> class names. NOT NULL.
 
+=item process_id
+
+A CHAR or VARCHAR (at least 36). NOT NULL
+
 =item status
 
 A VARCHAR(50) NOT NULL, defaults to 'pending'
