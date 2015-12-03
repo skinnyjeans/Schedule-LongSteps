@@ -44,7 +44,7 @@ First write a class to represent your long running set of steps
 
      .. Do some stuff and return the next step to execute ..
 
-      return $self->new_step({ what => 'do_stuff2', run_at => DateTime->... , state => [ 'some', 'jsonable', 'structure' ] , originator => $step });
+      return $self->new_step({ what => 'do_stuff2', run_at => DateTime->... , state => [ 'some', 'jsonable', 'structure' ]  });
   }
 
   sub do_stuff2{
@@ -68,7 +68,7 @@ Then in you main application do this once per 'target':
    my $longsteps = Schedule::LongSteps->new(...);
    ...
 
-   $longsteps->instanciate_process('My::Application::', [ the, init, arguments ]);
+   $longsteps->instanciate_process('My::Application::MyProcess', [ the, init, state ]);
 
 Then regularly (in a cron, or a recurring callback):
 
@@ -80,8 +80,6 @@ Then regularly (in a cron, or a recurring callback):
 =cut
 
 has 'storage' => ( is => 'ro', isa => 'Schedule::LongSteps::Storage', required => 1);
-
-
 
 =head2 run_due_steps
 
