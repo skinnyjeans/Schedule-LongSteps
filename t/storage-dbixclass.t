@@ -51,13 +51,13 @@ is( $storage->prepare_due_steps()->count() , 0 , "Ok zero due steps");
 # inside the LongSteps::Storage::DBIxClass code.
 my $dtf = $schema->storage()->datetime_parser();
 
-$storage->schema()->resultset('LongstepsStep')->create({ what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
+$storage->create_step({ what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
 
 is( $storage->prepare_due_steps()->count() , 1 , "Ok one due step");
 is( $storage->prepare_due_steps()->count() , 0 , "Doing it again gives zero steps");
 
-$storage->schema()->resultset('LongstepsStep')->create({ what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
-$storage->schema()->resultset('LongstepsStep')->create({ what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
+$storage->create_step({ what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
+$storage->create_step({ what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
 
 my $steps = $storage->prepare_due_steps();
 is( $steps->count() , 2 , "Ok two steps to do");

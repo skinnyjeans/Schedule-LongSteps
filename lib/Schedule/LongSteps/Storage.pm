@@ -8,6 +8,17 @@ Schedule::LongSteps::Storage - An abstract storage class for steps
 
 =cut
 
+use Data::UUID;
+
+has 'uuid' => ( is => 'ro', isa => 'Data::UUID', lazy_build => 1);
+
+sub _build_uuid{
+    my ($self) = @_;
+    return Data::UUID->new();
+}
+
+
+
 =head2 prepare_due_steps
 
 Mark the steps that are due to run as 'running' and
@@ -23,6 +34,17 @@ a new steps storage backend.
 
 sub prepare_due_steps{
     my ($self) = @_;
+    die "Please implement this in $self";
+}
+
+=head2 create_step
+
+Creates and return a new stored step.
+
+=cut
+
+sub create_step{
+    my ($self, $properties) = @_;
     die "Please implement this in $self";
 }
 

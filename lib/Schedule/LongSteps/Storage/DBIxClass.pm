@@ -3,22 +3,14 @@ package Schedule::LongSteps::Storage::DBIxClass;
 use Moose;
 extends qw/Schedule::LongSteps::Storage/;
 
-use Data::UUID;
 use DateTime;
 
 has 'schema' => ( is => 'ro', isa => 'DBIx::Class::Schema', required => 1);
 has 'resultset_name' => ( is => 'ro', isa => 'Str', required => 1);
 
-has 'uuid' => ( is => 'ro', isa => 'Data::UUID', lazy_build => 1);
-
 sub _get_resultset{
     my ($self) = @_;
     return $self->schema()->resultset($self->resultset_name());
-}
-
-sub _build_uuid{
-    my ($self) = @_;
-    return Data::UUID->new();
 }
 
 =head1 NAME
@@ -112,6 +104,17 @@ sub prepare_due_steps{
     return $rs->search({
         run_id => $uuid,
     });
+}
+
+=head2 create_step
+
+See L<Schedule::LongSteps::Storage>
+
+=cut
+
+sub create_step{
+    my ($self, $step_properties) = @_;
+    return $self->_get_resultset()->create($step_properties);
 }
 
 __PACKAGE__->meta->make_immutable();

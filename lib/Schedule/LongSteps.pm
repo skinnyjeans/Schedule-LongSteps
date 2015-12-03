@@ -31,7 +31,7 @@ First write a class to represent your long running set of steps
   # The first step should be executed after the process is installed on the target.
   sub build_first_step{
     my ($self) = @_;
-    return $self->new_step({ what => 'do_stuff1', run_at => DateTime->now(), state => { some => 'initial', state => 0 } });
+    return $self->new_step({ what => 'do_stuff1', run_at => DateTime->now() });
   }
 
   sub do_stuff1{
@@ -68,7 +68,7 @@ Then in you main application do this once per 'target':
    my $longsteps = Schedule::LongSteps->new(...);
    ...
 
-   $longsteps->instanciate_process('My::Application::MyProcess', [ the, init, state ]);
+   $longsteps->instanciate_process('My::Application::MyProcess', { thing => 'whatever' }, [ the, init, state ]);
 
 Then regularly (in a cron, or a recurring callback):
 
@@ -78,6 +78,8 @@ Then regularly (in a cron, or a recurring callback):
   $long_steps->run_due_steps({ thing => 'whatever' });
 
 =cut
+
+use Class::Load;
 
 has 'storage' => ( is => 'ro', isa => 'Schedule::LongSteps::Storage', required => 1);
 
@@ -111,6 +113,33 @@ sub run_due_steps{
             %{$new_step}
         });
     }
+}
+
+=head2 instanciate_process
+
+Instanciate a process from the given process class
+
+=cut
+
+sub instanciate_process{
+    my ($self, $process_class, $build_args, $init_state ) = @_;
+
+    $build_args //= {};
+    $init_state //= {};
+
+    Class::Load::load_class($process_class);
+    unless( $process_class->isa('Schedule::LongSteps::Process') ){
+        confess("Class '$process_class' is not an instance of 'Schedule::LongSteps::Process'");
+    }
+
+    my $process = $process_class->new( $build_args );
+    my $step_props = $process->build_first_step();
+
+    my $step = $self->storage->create_step({
+        state => $init_state,
+        %{$step_props}
+    });
+    return;
 }
 
 __PACKAGE__->meta->make_immutable();
