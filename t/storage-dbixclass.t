@@ -2,7 +2,7 @@
 
 use Test::More;
 
-use Schedule::LongSteps::Storage::DBIxCLass;
+use Schedule::LongSteps::Storage::DBIxClass;
 use DateTime;
 
 eval "use DBD::SQLite";
