@@ -1,6 +1,6 @@
 package Schedule::LongSteps::Storage;
 
-use Moose;
+use Moose::Role;
 
 =head1 NAME
 
@@ -32,10 +32,7 @@ a new steps storage backend.
 
 =cut
 
-sub prepare_due_steps{
-    my ($self) = @_;
-    die "Please implement this in $self";
-}
+requires 'prepare_due_steps';
 
 =head2 create_step
 
@@ -43,10 +40,6 @@ Creates and return a new stored step.
 
 =cut
 
-sub create_step{
-    my ($self, $properties) = @_;
-    die "Please implement this in $self";
-}
+requires 'create_step';
 
-
-__PACKAGE__->meta()->make_immutable();
+1;

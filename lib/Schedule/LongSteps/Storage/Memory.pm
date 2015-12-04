@@ -1,7 +1,7 @@
 package Schedule::LongSteps::Storage::Memory;
 
 use Moose;
-extends qw/Schedule::LongSteps::Storage/;
+with qw/Schedule::LongSteps::Storage/;
 
 use DateTime;
 
