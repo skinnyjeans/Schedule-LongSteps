@@ -156,7 +156,7 @@ sub run_due_processes{
 
 =head2 instanciate_process
 
-Instanciate a process from the given process class
+Instanciate a process from the given process class returns a new process that will have an ID.
 
 =cut
 

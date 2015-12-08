@@ -74,6 +74,9 @@ use Moose;
 
 use DateTime;
 
+my $IDSEQUENCE = 0;
+
+has 'id' => ( is => 'ro', isa => 'Int', default => sub{ ++$IDSEQUENCE ; } );
 has 'process_class' => ( is => 'ro', isa => 'Str', required => 1);
 has 'status' => ( is => 'rw', isa => 'Str', default => 'pending' );
 has 'what' => ( is => 'rw' ,  isa => 'Str', required => 1);

@@ -10,7 +10,7 @@ ok( ! $storage->prepare_due_processes()->has_next(), "Ok zero due steps");
 
 my $process_id = '12345';
 
-$storage->create_process({ process_class => 'Blabla', process_id => $process_id, what => 'whatever', run_at =>  DateTime->now() });
+ok( $storage->create_process({ process_class => 'Blabla', process_id => $process_id, what => 'whatever', run_at =>  DateTime->now() })->id(), "Ok got ID");
 
 ok( $storage->prepare_due_processes()->has_next(), "Ok at least one due step");
 ok( ! $storage->prepare_due_processes()->has_next(), "Doing it again gives zero steps");

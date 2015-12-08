@@ -23,18 +23,19 @@ use Schedule::LongSteps;
 
 ok( my $long_steps = Schedule::LongSteps->new() );
 
-ok( my $step = $long_steps->instanciate_process('MyProcess', undef, { beef => 'saussage' }) );
+ok( my $process = $long_steps->instanciate_process('MyProcess', undef, { beef => 'saussage' }) );
+ok( $process->id() );
 
-is( $step->what() , 'do_stuff1' );
-is_deeply( $step->state() , { beef => 'saussage' });
+is( $process->what() , 'do_stuff1' );
+is_deeply( $process->state() , { beef => 'saussage' });
 
 # Time to run!
 ok( $long_steps->run_due_processes() );
 
 # And check the step properties have been
-is_deeply( $step->state(), { the => 'final', state => 1 });
-is( $step->status() , 'terminated' );
-is( $step->run_at() , undef );
+is_deeply( $process->state(), { the => 'final', state => 1 });
+is( $process->status() , 'terminated' );
+is( $process->run_at() , undef );
 
 # Check no due step have run again
 ok( ! $long_steps->run_due_processes() );
