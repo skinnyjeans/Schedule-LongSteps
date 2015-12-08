@@ -105,6 +105,18 @@ Simply do in your step 'do_last_stuff' implementation:
    }
 
 
+=head2 DO SOMETHING CONDITIONALLY
+
+   sub do_choose{
+      if( ... ){
+         return $self->new_step({ what => 'do_choice1', run_at => DateTime->now() });
+      }
+      return $self->new_step({ what => 'do_choice2', run_at => DateTime->now() });
+   }
+
+   sub do_choice1{...}
+   sub do_choice2{...}
+
 =cut
 
 use Class::Load;
