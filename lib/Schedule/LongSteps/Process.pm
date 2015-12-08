@@ -2,13 +2,25 @@ package Schedule::LongSteps::Process;
 
 use Moose;
 
+has 'stored_process' => ( is => 'ro' );
+
 =head1 NAME
 
 Schedule::LongSteps::Process - A base class for all LongSteps processes.
 
 =cut
 
-has 'process_id' => ( is => 'ro', isa => 'Str' , required => 1 );
+=head2 state
+
+Returns the current state (an arbitrary JSONable data structure, but usually a HashRef)
+of this process.
+
+=cut
+
+sub state{
+    my ($self) = @_;
+    return $self->stored_process()->state();
+}
 
 =head2 new_step
 

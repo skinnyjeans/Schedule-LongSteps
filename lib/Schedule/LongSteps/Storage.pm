@@ -19,31 +19,31 @@ sub _build_uuid{
 
 
 
-=head2 prepare_due_steps
+=head2 prepare_due_processes
 
-Mark the steps that are due to run as 'running' and
+Mark the processes that are due to run as 'running' and
 returns an iterable object listing them.
 
 Users: Note that this is meant to be used by L<Schedule::LongSteps>, and not intended
 to be called directly.
 
 Implementors: You will have to implement this method should you wish to implement
-a new steps storage backend.
+a new process storage backend.
 
 =cut
 
-sub prepare_due_steps{
+sub prepare_due_processes{
     my ($self) = @_;
     die "Please implement this in $self";
 }
 
-=head2 create_step
+=head2 create_process
 
-Creates and return a new stored step.
+Creates and return a new stored process.
 
 =cut
 
-sub create_step{
+sub create_process{
     my ($self, $properties) = @_;
     die "Please implement this in $self";
 }

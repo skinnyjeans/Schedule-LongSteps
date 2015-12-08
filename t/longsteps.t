@@ -29,7 +29,7 @@ is( $step->what() , 'do_stuff1' );
 is_deeply( $step->state() , { beef => 'saussage' });
 
 # Time to run!
-ok( $long_steps->run_due_steps() );
+ok( $long_steps->run_due_processes() );
 
 # And check the step properties have been
 is_deeply( $step->state(), { the => 'final', state => 1 });
@@ -37,6 +37,6 @@ is( $step->status() , 'terminated' );
 is( $step->run_at() , undef );
 
 # Check no due step have run again
-ok( ! $long_steps->run_due_steps() );
+ok( ! $long_steps->run_due_processes() );
 
 done_testing();

@@ -14,9 +14,8 @@ plan skip_all => "DBIx::Class::Schema::Loader is required for this test."
     if $@;
 
 my $create_table = q|
-CREATE TABLE longsteps_step( id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE TABLE longsteps_process( id INTEGER PRIMARY KEY AUTOINCREMENT,
                              process_class TEXT NOT NULL,
-                             process_id TEXT NOT NULL,
                              status TEXT NOT NULL DEFAULT 'pending',
                              what TEXT NOT NULL,
                              run_at TEXT DEFAULT NULL,
@@ -45,27 +44,27 @@ DBIx::Class::Schema::Loader::make_schema_at(
 
 my $schema = My::Schema->connect(sub{ $dbh; });
 
-ok( my $storage = Schedule::LongSteps::Storage::DBIxClass->new({ schema => $schema, resultset_name => 'LongstepsStep' }) );
-is( $storage->prepare_due_steps()->count() , 0 , "Ok zero due steps");
+ok( my $storage = Schedule::LongSteps::Storage::DBIxClass->new({ schema => $schema, resultset_name => 'LongstepsProcess' }) );
+is( $storage->prepare_due_processes()->count() , 0 , "Ok zero due steps");
 
 # Note that we need that for SQLite, cause it hasnt got
 # a datetime type. Therefore, we need to make sure the format is consistent with what is done
 # inside the LongSteps::Storage::DBIxClass code.
 my $dtf = $schema->storage()->datetime_parser();
 
-$storage->create_step({ process_class => 'Blabla', process_id => 123, what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
+$storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
 
-is( $storage->prepare_due_steps()->count() , 1 , "Ok one due step");
-is( $storage->prepare_due_steps()->count() , 0 , "Doing it again gives zero steps");
+is( $storage->prepare_due_processes()->count() , 1 , "Ok one due step");
+is( $storage->prepare_due_processes()->count() , 0 , "Doing it again gives zero steps");
 
-$storage->create_step({ process_class => 'Blabla', process_id => 124, what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
-$storage->create_step({ process_class => 'Blabla', process_id => 124, what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
+$storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
+$storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
 
-my $steps = $storage->prepare_due_steps();
+my $steps = $storage->prepare_due_processes();
 is( $steps->count() , 2 , "Ok two steps to do");
 while( my $step = $steps->next() ){
     # While we are doing things, any other process would see zero things to do
-    is( $storage->prepare_due_steps()->count() , 0 , "Preparing steps again whilst they are running give zero steps");
+    is( $storage->prepare_due_processes()->count() , 0 , "Preparing steps again whilst they are running give zero steps");
 }
 
 

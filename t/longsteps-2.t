@@ -34,7 +34,7 @@ is( $step->what() , 'do_stuff1' );
 is_deeply( $step->state() , { beef => 'saussage' });
 
 # Time to run!
-ok( $long_steps->run_due_steps() );
+ok( $long_steps->run_due_processes() );
 
 # And check the step properties have been
 is_deeply( $step->state(), { some => 'new one' });
@@ -42,13 +42,13 @@ is( $step->what(), 'do_last_stuff' );
 is( $step->status() , 'paused' );
 ok( $step->run_at() );
 
-ok( $long_steps->run_due_steps() , "Will run one step");
+ok( $long_steps->run_due_processes() , "Will run one step");
 
 is_deeply( $step->state(), { the => 'final one' });
 is( $step->status() , 'terminated' );
 ok( ! $step->run_at() );
 
-ok( ! $long_steps->run_due_steps() );
+ok( ! $long_steps->run_due_processes() );
 
 
 done_testing();

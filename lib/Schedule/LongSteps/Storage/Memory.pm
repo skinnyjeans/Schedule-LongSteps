@@ -24,58 +24,57 @@ Then build and use a L<Schedule::LongSteps> object:
 
 =cut
 
-has 'steps' => ( is => 'ro', isa => 'ArrayRef[Schedule::LongSteps::Storage::Memory::Step]', default => sub{ []; } );
+has 'processes' => ( is => 'ro', isa => 'ArrayRef[Schedule::LongSteps::Storage::Memory::Process]', default => sub{ []; } );
 
-=head2 prepare_due_steps
+=head2 prepare_due_processes
 
 See L<Schedule::LongSteps::Storage::DBIxClass>
 
 =cut
 
-sub prepare_due_steps{
+sub prepare_due_processes{
     my ($self) = @_;
 
     my $now = DateTime->now();
     my $uuid = $self->uuid()->create_str();
 
     my @to_run = ();
-    foreach my $step ( @{ $self->steps() } ){
-        if( $step->run_at()
-                && !$step->run_id()
-                && ( DateTime->compare( $step->run_at(),  $now ) <= 0 ) ){
-            $step->update({
+    foreach my $process ( @{ $self->processes() } ){
+        if( $process->run_at()
+                && !$process->run_id()
+                && ( DateTime->compare( $process->run_at(),  $now ) <= 0 ) ){
+            $process->update({
                 run_id => $uuid,
                 status => 'running'
             });
-            push @to_run , $step;
+            push @to_run , $process;
         }
     }
     return  MooseX::Iterator::Array->new( collection => \@to_run );
 }
 
-=head2 create_step
+=head2 create_process
 
 See L<Schedule::LongSteps::Storage>
 
 =cut
 
-sub create_step{
-    my ($self, $step_properties) = @_;
-    my $step = Schedule::LongSteps::Storage::Memory::Step->new($step_properties);
-    push @{$self->steps()} , $step;
-    return $step;
+sub create_process{
+    my ($self, $process_properties) = @_;
+    my $process = Schedule::LongSteps::Storage::Memory::Process->new($process_properties);
+    push @{$self->processes()} , $process;
+    return $process;
 }
 
 __PACKAGE__->meta->make_immutable();
 
-package Schedule::LongSteps::Storage::Memory::Step;
+package Schedule::LongSteps::Storage::Memory::Process;
 
 use Moose;
 
 use DateTime;
 
 has 'process_class' => ( is => 'ro', isa => 'Str', required => 1);
-has 'process_id' => ( is => 'ro', isa => 'Str', required => 1 );
 has 'status' => ( is => 'rw', isa => 'Str', default => 'pending' );
 has 'what' => ( is => 'rw' ,  isa => 'Str', required => 1);
 has 'run_at' => ( is => 'rw', isa => 'Maybe[DateTime]', default => sub{ undef; } );

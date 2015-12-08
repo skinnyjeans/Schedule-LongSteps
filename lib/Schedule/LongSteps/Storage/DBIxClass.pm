@@ -20,11 +20,11 @@ Schedule::LongSteps::Storage::DBIxClass - DBIx::Class based storage.
 =head1 SYNOPSIS
 
 First instanciate a storage with your L<DBIx::Class::Schema> and the name
-of the resultset that represent the set of steps:
+of the resultset that represent the stored process:
 
   my $storage = Schedule::LongSteps::Storage::DBIxClass->new({
                    schema => $dbic_schema,
-                   resultset_name => 'LongstepsStep'
+                   resultset_name => 'LongstepsProcess'
                 });
 
 Then build and use a L<Schedule::LongSteps> object:
@@ -39,17 +39,13 @@ The resultset to use with this storage MUST contain the following columns, const
 
 =over
 
-=item a primary key of your choice
+=item id
 
-But the old 'id PRIMARY KEY AUTO_INCREMENT' (or any equivalent) will do.
+A unique primary key auto incrementable identifier
 
 =item process_class
 
 A VARCHAR long enough to hold  your L<Schedule::LongSteps::Process> class names. NOT NULL.
-
-=item process_id
-
-A CHAR or VARCHAR (at least 36). NOT NULL
 
 =item status
 
@@ -80,13 +76,13 @@ A reasonably long TEXT field capable of holding a full stack trace in case somet
 
 =cut
 
-=head2 prepare_due_steps
+=head2 prepare_due_processes
 
 See L<Schedule::LongSteps::Storage::DBIxClass>
 
 =cut
 
-sub prepare_due_steps{
+sub prepare_due_processes{
     my ($self) = @_;
 
     my $now = DateTime->now();
@@ -110,15 +106,15 @@ sub prepare_due_steps{
     });
 }
 
-=head2 create_step
+=head2 create_process
 
 See L<Schedule::LongSteps::Storage>
 
 =cut
 
-sub create_step{
-    my ($self, $step_properties) = @_;
-    return $self->_get_resultset()->create($step_properties);
+sub create_process{
+    my ($self, $process_properties) = @_;
+    return $self->_get_resultset()->create($process_properties);
 }
 
 __PACKAGE__->meta->make_immutable();
