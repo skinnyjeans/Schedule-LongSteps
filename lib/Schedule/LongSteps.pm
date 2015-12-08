@@ -16,7 +16,7 @@ An example of such a process would be: "After an order has been started, if more
 
 A serie of steps like that is usually a pain to implement and this is an attempt to provide a framework so it would make writing and testing such a process as easy as writing and testing an good old Class.
 
-=head1 QUICK START AND SYNPSIS
+=head1 QUICK START AND SYNOPSIS
 
 First write a class to represent your long running set of steps
 
@@ -75,6 +75,35 @@ Then regularly (in a cron, or a recurring callback):
   ...
 
   $long_steps->run_due_steps({ thing => 'whatever' });
+
+=head1 COOKBOOK
+
+This package is designed to be expressive enough for you to implement business processes
+as complex as those given as an example on this page: L<https://en.wikipedia.org/wiki/XPDL>
+
+Proper support for XPDL is not implemented yet, but here is a list of recipes to implement
+the most common process patterns:
+
+=head2 MOVING TO A FINAL STATE
+
+Simply do in your step 'do_last_stuff' implementation:
+
+   sub do_last_stuff{
+      my ($self) = @_;
+      # Return final_step with the final state.
+      return $self->final_step({ state => { the => 'final' , state => 1 } });
+   }
+
+=head2 DO SOMETHING ELSE IN X AMOUNT OF TIME
+
+   sub do_stuff{
+        ...
+        # Do the things that have to be done NOW
+        ...
+        # And in two days, to this
+        return $self->new_step({ what => 'do_stuff_later', run_at => DateTime->now()->add( days => 2 ) ,  state => { some => 'new one' }});
+   }
+
 
 =cut
 
