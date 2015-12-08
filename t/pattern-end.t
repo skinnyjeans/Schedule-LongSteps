@@ -14,7 +14,7 @@ use Schedule::LongSteps;
         return $self->new_step({ what => 'do_end', run_at => DateTime->now() });
     }
 
-    sub do_stuff1{
+    sub do_end{
         my ($self) = @_;
         return $self->final_step({ state => { the => 'final', state => 1 }  }) ;
     }

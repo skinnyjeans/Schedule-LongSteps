@@ -117,6 +117,29 @@ Simply do in your step 'do_last_stuff' implementation:
    sub do_choice1{...}
    sub do_choice2{...}
 
+=head2 FORKING AND JOINING PROCESSES
+
+
+  sub do_fork{
+     ...
+     my $p1 = $self->longsteps->instanciate_process('AnotherProcessClass', \%build_args , \%initial_state );
+     my $p2 = $self->longsteps->instanciate_process('YetAnotherProcessClass', \%build_args2 , \%initial_state2 );
+     ...
+     return $self->new_step({ what => 'do_join', run_at => DateTime->now() , { processes => [ $p1->id(), p2->id() ] } });
+  }
+
+  sub do_join{
+     return $self->wait_processes( $self->state()->{processes}, sub{
+          my ( @terminated_processes ) = @_;
+          my $state1 = $terminated_processes[0]->state();
+          my $state2 = $terminated_processes[1]->state();
+          ...
+          # And as usual:
+          return $self->...
+     });
+  }
+
+
 =cut
 
 use Class::Load;
@@ -168,7 +191,7 @@ sub run_due_processes{
     my $process_count = 0;
     while( my $stored_process = $stored_processes->next() ){
         Class::Load::load_class($stored_process->process_class());
-        my $process = $stored_process->process_class()->new({ stored_process => $stored_process, %{$context} });
+        my $process = $stored_process->process_class()->new({ longsteps => $self, stored_process => $stored_process, %{$context} });
         my $process_method = $stored_process->what();
 
         $process_count++;
@@ -177,7 +200,7 @@ sub run_due_processes{
         if( my $err = $@ ){
             $log->error("Error running process ".$stored_process->process_class().':'.$stored_process->id().' :'.$err);
             $stored_process->update({
-                status => 'error',
+                status => 'terminated',
                 error => $err,
                 run_at => undef,
                 run_id => undef,
@@ -211,7 +234,7 @@ sub instanciate_process{
     unless( $process_class->isa('Schedule::LongSteps::Process') ){
         confess("Class '$process_class' is not an instance of 'Schedule::LongSteps::Process'");
     }
-    my $process = $process_class->new( $build_args );
+    my $process = $process_class->new( { longsteps => $self, %{ $build_args } } );
     my $step_props = $process->build_first_step();
 
     my $stored_process = $self->storage->create_process({

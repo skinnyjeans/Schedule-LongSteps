@@ -2,6 +2,8 @@ package Schedule::LongSteps::Process;
 
 use Moose;
 
+has 'longsteps' => ( is => 'ro', isa => 'Schedule::LongSteps' , required => 1);
+
 has 'stored_process' => ( is => 'ro' );
 
 =head1 NAME
