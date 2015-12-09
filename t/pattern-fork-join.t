@@ -63,7 +63,6 @@ use Schedule::LongSteps;
 
     sub do_join{
         my ($self) = @_;
-
         return $self->wait_processes(
             $self->state()->{processes},
             sub{

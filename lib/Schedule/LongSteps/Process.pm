@@ -15,7 +15,7 @@ Schedule::LongSteps::Process - A base class for all LongSteps processes.
 
 =head2 state
 
-Returns the current state (an arbitrary JSONable data structure, but usually a HashRef)
+Returns the current state (a HashRef JSONable data structure)
 of this process.
 
 =cut
@@ -31,6 +31,19 @@ Returns a new step from the given properties.
 
 Usage examples:
 
+  # In a process class.
+  sub do_current_step{
+     my ($self) = @_;
+     return $this->new_step({ run_at => DateTime->... , what => 'do_nextstep' , state => { new => 'state' } });
+  }
+
+If you omit run_at, the process will not run again and stay in paused state until you go and set the run_at
+time manually.
+
+If you omit 'what', the next step to run will be the same as the current step.
+
+If you omit 'state', the state just doesnt change.
+
 =cut
 
 sub new_step{
@@ -42,6 +55,17 @@ sub new_step{
 
 Returns a final step that will never run
 from the given properies.
+
+Usage:
+
+    # In a Process class.
+    sub do_last_thing{
+       my ($self) = @_;
+       return $self->final_step({ state => { the => 'final' , state => 1 } });
+    }
+
+If you omit 'state', the current state of the process just doesnt change and
+the process terminates with the current state.
 
 =cut
 

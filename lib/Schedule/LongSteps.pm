@@ -14,7 +14,41 @@ This attempts to solve the problem of defining and running a serie of steps, may
 
 An example of such a process would be: "After an order has been started, if more than one hour, send an email reminder every 2 days until the order is finished. Give up after a month"". You get the idea.
 
-A serie of steps like that is usually a pain to implement and this is an attempt to provide a framework so it would make writing and testing such a process as easy as writing and testing an good old Class.
+A serie of steps like that is usually a pain to implement and this is an attempt to provide a framework so it would make writing and testing such a process as easy as writing and testing a good old Class.
+
+=head1 CONCEPTS
+
+=head2 Process
+
+A Process represents a set of logically linked steps that need to run over a long span of times (hours, months, even years..). It persists in a Storage.
+
+At the logical level, the persistant Process has the following attributes (See L<Schedule::LongSteps::Storage::DBIxClass> for a comprehensive list):
+
+- what. Which step should it run next.
+
+- run_at. A L<DateTime> at which this next step should be run. This allows running a step far in the future.
+
+- status. Is the step running, or paused or is the process terminated.
+
+- state. The persistant state of your application. This should be a pure Perl hash (JSONable).
+
+Users (you) implement their business process as a subclass of L<Schedule::LongSteps::Process>. Such subclasses can have contextual properties
+as Moose properties that will have to be supplied by the L<Schedule::LongSteps> management methods.
+
+=head2 Steps
+
+A step is simply a subroutine in a process class that runs some business code. It always returns either a new step to be run
+or a final step marker.
+
+=head2 Storage
+
+A storage provides the backend to persist processes. Build a Schedule::LongSteps with a storage instance.
+
+=head2 Manager: Schedule::LongSteps
+
+A L<Schedule::LongSteps> provides an entry point to all thing related to Schedule::LongSteps process management.
+You should keep once instance of this in your application (well, one instance per process) as this is what you
+are going to use to launch and manage processes.
 
 =head1 QUICK START AND SYNOPSIS
 
@@ -64,21 +98,36 @@ First write a class to represent your long running set of steps
 
 Then in you main application do this once per 'target':
 
-   my $longsteps = Schedule::LongSteps->new(...);
+   my $dbic_storage = Schedule::LongSteps::Storage::DBIxClass->new(...);
+   # Keep only ONE Instance of this in your application.
+   my $longsteps = Schedule::LongSteps->new({ storage => $dbic_storage });
    ...
 
    $longsteps->instanciate_process('My::Application::MyProcess', { thing => 'whatever' }, [ the, init, state ]);
 
 Then regularly (in a cron, or a recurring callback):
 
-  my $long_steps = Schedule::LongSteps->new(...); # Keep only one instance per process.
-  ...
+   my $dbic_storage = Schedule::LongSteps::Storage::DBIxClass->new(...);
+   # Keep only ONE instance of this in your application.
+   my $longsteps = Schedule::LongSteps->new({ storage => $dbic_storage });
+   ...
 
-  $long_steps->run_due_steps({ thing => 'whatever' });
+   $long_steps->run_due_steps({ thing => 'whatever' });
+
+=head1 PERSISTANCE
+
+The persistance of processes is managed by a subclass of L<Schedule::LongSteps::Storage> that you should instanciate
+and given to the constructor of L<Schedule::LongSteps>
+
+Example:
+
+   my $dbic_storage = Schedule::LongSteps::Storage::DBIxClass->new(...);
+   my $longsteps = Schedule::LongSteps->new({ storage => $dbic_storage });
+   ...
 
 =head1 COOKBOOK
 
-This package is designed to be expressive enough for you to implement business processes
+This package should  be expressive enough for you to implement business processes
 as complex as those given as an example on this page: L<https://en.wikipedia.org/wiki/XPDL>
 
 Proper support for XPDL is not implemented yet, but here is a list of recipes to implement
@@ -139,6 +188,15 @@ Simply do in your step 'do_last_stuff' implementation:
      });
   }
 
+=head1 SEE ALSO
+
+L<BPM::Engine> A business Process engine based on XPDL, in Alpha version since 2012 (at this time of writing)
+
+=head1 Copyright and Acknowledgement
+
+This code is released under the Perl5 Terms by Jerome Eteve (JETEVE), with the support of Broadbean Technologies Ltd.
+
+See L<perlartistic>
 
 =cut
 
@@ -221,6 +279,10 @@ sub run_due_processes{
 =head2 instanciate_process
 
 Instanciate a stored process from the given process class returns a new process that will have an ID.
+
+Usage:
+
+  $this->instanciate_process( 'MyProcessClass', { process_attribute1 => .. } , { initial => 'state' });
 
 =cut
 
