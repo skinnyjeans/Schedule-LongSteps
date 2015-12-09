@@ -1,14 +1,14 @@
 # NAME
 
-Schedule::LongSteps - Manage sets of steps accross days, months, years
+Schedule::LongSteps - Manage long term processes over arbitrary large span of time.
 
 # ABSTRACT
 
-This attempts to solve the problem of defining and running a serie of steps, maybe conditional accross an arbitrary long timespan.
+This attempts to solve the problem of defining and running a set of potentially conditional steps accross an arbitrary long timespan.
 
 An example of such a process would be: "After an order has been started, if more than one hour, send an email reminder every 2 days until the order is finished. Give up after a month"". You get the idea.
 
-A serie of steps like that is usually a pain to implement and this is an attempt to provide a framework so it would make writing and testing such a process as easy as writing and testing a good old Class.
+Such a process is usually a pain to implement and this is an attempt to provide a framework so it would make writing and testing such a process as easy as writing and testing a good old Class.
 
 # CONCEPTS
 
@@ -225,15 +225,7 @@ Simply do in your step 'do\_last\_stuff' implementation:
        });
     }
 
-# SEE ALSO
-
-[BPM::Engine](https://metacpan.org/pod/BPM::Engine) A business Process engine based on XPDL, in Alpha version since 2012 (at this time of writing)
-
-# Copyright and Acknowledgement
-
-This code is released under the Perl5 Terms by Jerome Eteve (JETEVE), with the support of Broadbean Technologies Ltd.
-
-See [perlartistic](https://metacpan.org/pod/perlartistic)
+# METHODS
 
 ## uuid
 
@@ -254,14 +246,24 @@ Usage:
 
 Returns the number of processes run
 
-## instanciate\_process
+## instantiate\_process
 
 Instanciate a stored process from the given process class returns a new process that will have an ID.
 
 Usage:
 
-    $this->instanciate_process( 'MyProcessClass', { process_attribute1 => .. } , { initial => 'state' });
+    $this->instantiate_process( 'MyProcessClass', { process_attribute1 => .. } , { initial => 'state' });
 
 ## find\_process
 
 Shortcut to $self->storage->find\_process( $pid );
+
+# SEE ALSO
+
+[BPM::Engine](https://metacpan.org/pod/BPM::Engine) A business Process engine based on XPDL, in Alpha version since 2012 (at this time of writing)
+
+# Copyright and Acknowledgement
+
+This code is released under the Perl5 Terms by Jerome Eteve (JETEVE), with the support of Broadbean Technologies Ltd.
+
+See [perlartistic](https://metacpan.org/pod/perlartistic)

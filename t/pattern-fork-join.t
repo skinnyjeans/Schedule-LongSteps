@@ -55,8 +55,8 @@ use Schedule::LongSteps;
 
         my $state = $self->state();
 
-        my $p1 = $self->longsteps->instanciate_process('AnotherProcessClass');
-        my $p2 = $self->longsteps->instanciate_process('YetAnotherProcessClass');
+        my $p1 = $self->longsteps->instantiate_process('AnotherProcessClass');
+        my $p2 = $self->longsteps->instantiate_process('YetAnotherProcessClass');
 
         return $self->new_step({ what => 'do_join', run_at => DateTime->now() , state => { processes => [ $p1->id(), $p2->id() ], %$state } });
     }
@@ -78,7 +78,7 @@ use Schedule::LongSteps;
 
 
 my $long_steps = Schedule::LongSteps->new();
-ok( my $process = $long_steps->instanciate_process('MyProcess', undef, {}) );
+ok( my $process = $long_steps->instantiate_process('MyProcess', undef, {}) );
 
 {
     # Time to run!

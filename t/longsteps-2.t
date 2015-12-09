@@ -28,7 +28,7 @@ use Schedule::LongSteps;
 
 ok( my $long_steps = Schedule::LongSteps->new() );
 
-ok( my $step = $long_steps->instanciate_process('MyProcess', undef, { beef => 'saussage' }) );
+ok( my $step = $long_steps->instantiate_process('MyProcess', undef, { beef => 'saussage' }) );
 
 is( $step->what() , 'do_stuff1' );
 is_deeply( $step->state() , { beef => 'saussage' });

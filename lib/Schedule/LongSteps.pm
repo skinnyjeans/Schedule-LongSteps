@@ -6,15 +6,15 @@ use Moose;
 
 =head1 NAME
 
-Schedule::LongSteps - Manage sets of steps accross days, months, years
+Schedule::LongSteps - Manage long term processes over arbitrary large span of time.
 
 =head1 ABSTRACT
 
-This attempts to solve the problem of defining and running a serie of steps, maybe conditional accross an arbitrary long timespan.
+This attempts to solve the problem of defining and running a set of potentially conditional steps accross an arbitrary long timespan.
 
 An example of such a process would be: "After an order has been started, if more than one hour, send an email reminder every 2 days until the order is finished. Give up after a month"". You get the idea.
 
-A serie of steps like that is usually a pain to implement and this is an attempt to provide a framework so it would make writing and testing such a process as easy as writing and testing a good old Class.
+Such a process is usually a pain to implement and this is an attempt to provide a framework so it would make writing and testing such a process as easy as writing and testing a good old Class.
 
 =head1 CONCEPTS
 
@@ -234,6 +234,39 @@ Simply do in your step 'do_last_stuff' implementation:
      });
   }
 
+=head1 METHODS
+
+=head2 uuid
+
+Returns a L<Data::UUID> from the storage.
+
+=head2 run_due_processes
+
+Runs all the due processes steps according to now(). All processes
+are given the context to be built.
+
+Usage:
+
+ # No context given:
+ $this->run_due_processes();
+
+ # With 'thing' as context:
+ $this->run_due_processes({ thing => ... });
+
+Returns the number of processes run
+
+=head2 instantiate_process
+
+Instanciate a stored process from the given process class returns a new process that will have an ID.
+
+Usage:
+
+  $this->instantiate_process( 'MyProcessClass', { process_attribute1 => .. } , { initial => 'state' });
+
+=head2 find_process
+
+Shortcut to $self->storage->find_process( $pid );
+
 =head1 SEE ALSO
 
 L<BPM::Engine> A business Process engine based on XPDL, in Alpha version since 2012 (at this time of writing)
@@ -261,33 +294,11 @@ sub _build_storage{
     return Schedule::LongSteps::Storage::Memory->new();
 }
 
-=head2 uuid
-
-Returns a L<Data::UUID> from the storage.
-
-=cut
 
 sub uuid{
     my ($self) = @_;
     return $self->storage()->uuid();
 }
-
-=head2 run_due_processes
-
-Runs all the due processes steps according to now(). All processes
-are given the context to be built.
-
-Usage:
-
- # No context given:
- $this->run_due_processes();
-
- # With 'thing' as context:
- $this->run_due_processes({ thing => ... });
-
-Returns the number of processes run
-
-=cut
 
 sub run_due_processes{
     my ($self, $context) = @_;
@@ -324,17 +335,7 @@ sub run_due_processes{
     return $process_count;
 }
 
-=head2 instanciate_process
-
-Instanciate a stored process from the given process class returns a new process that will have an ID.
-
-Usage:
-
-  $this->instanciate_process( 'MyProcessClass', { process_attribute1 => .. } , { initial => 'state' });
-
-=cut
-
-sub instanciate_process{
+sub instantiate_process{
     my ($self, $process_class, $build_args, $init_state ) = @_;
 
     $build_args //= {};
@@ -354,12 +355,6 @@ sub instanciate_process{
     });
     return $stored_process;
 }
-
-=head2 find_process
-
-Shortcut to $self->storage->find_process( $pid );
-
-=cut
 
 sub find_process{
     my ($self, $pid) = @_;

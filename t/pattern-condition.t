@@ -40,7 +40,7 @@ use Schedule::LongSteps;
 
 ok( my $long_steps = Schedule::LongSteps->new() );
 {
-    ok( my $process = $long_steps->instanciate_process('MyProcess', undef, { choice => 1 }) );
+    ok( my $process = $long_steps->instantiate_process('MyProcess', undef, { choice => 1 }) );
     # Time to run!
     ok( $long_steps->run_due_processes() );
 
@@ -52,7 +52,7 @@ ok( my $long_steps = Schedule::LongSteps->new() );
 }
 
 {
-    ok( my $process = $long_steps->instanciate_process('MyProcess', undef, { choice => 2 }) );
+    ok( my $process = $long_steps->instantiate_process('MyProcess', undef, { choice => 2 }) );
     # Time to run!
     ok( $long_steps->run_due_processes() );
 

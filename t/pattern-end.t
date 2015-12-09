@@ -23,7 +23,7 @@ use Schedule::LongSteps;
 
 ok( my $long_steps = Schedule::LongSteps->new() );
 
-ok( my $process = $long_steps->instanciate_process('MyProcess', undef, { beef => 'saussage' }) );
+ok( my $process = $long_steps->instantiate_process('MyProcess', undef, { beef => 'saussage' }) );
 
 # Time to run!
 ok( $long_steps->run_due_processes() );
