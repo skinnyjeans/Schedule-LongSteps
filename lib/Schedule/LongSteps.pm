@@ -198,6 +198,8 @@ This code is released under the Perl5 Terms by Jerome Eteve (JETEVE), with the s
 
 See L<perlartistic>
 
+=for HTML <a href="https://travis-ci.org/jeteve/Schedule-LongSteps"><img src="https://travis-ci.org/jeteve/Schedule-LongSteps.svg?branch=master"></a>
+
 =cut
 
 use Class::Load;
