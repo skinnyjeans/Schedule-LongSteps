@@ -117,4 +117,15 @@ sub create_process{
     return $self->_get_resultset()->create($process_properties);
 }
 
+=head2 find_process
+
+See L<Schedule::LongSteps::Storage>
+
+=cut
+
+sub find_process{
+    my ($self, $process_id) = @_;
+    return $self->_get_resultset()->find({ id => $process_id });
+}
+
 __PACKAGE__->meta->make_immutable();

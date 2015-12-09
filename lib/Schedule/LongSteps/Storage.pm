@@ -48,5 +48,20 @@ sub create_process{
     die "Please implement this in $self";
 }
 
+=head2 find_process
+
+Returns a stored process based on the given ID, or undef if no such thing exists.
+
+Usage:
+
+ my $stored_process = $this->find_process( $pid );
+
+=cut
+
+sub find_process{
+    my ($self, $pid) = @_;
+    die "Please implement this in $self";
+}
+
 
 __PACKAGE__->meta()->make_immutable();

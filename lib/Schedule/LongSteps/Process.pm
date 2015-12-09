@@ -1,6 +1,7 @@
 package Schedule::LongSteps::Process;
 
 use Moose;
+use Log::Any qw/$log/;
 
 has 'longsteps' => ( is => 'ro', isa => 'Schedule::LongSteps' , required => 1);
 
@@ -53,6 +54,44 @@ sub final_step{
         run_at => undef,
         status => 'terminated'
     };
+}
+
+=head2 wait_processes
+
+Wait for the given process IDs and returns whatever the given
+closure returns.
+
+Usage:
+
+   return $this->wait_process(
+            [ $pid1 , $pid2 ],
+            sub{
+                ...
+                return $this->new_step(...); # or whatever usual stuff
+            }
+
+If you skip the closure, this will just terminate $this process after the
+given subprocesses have finished.
+
+=cut
+
+sub wait_processes{
+    my ($self, $process_ids, $on_finish) = @_;
+    $process_ids //= [];
+    $on_finish //= sub{ $self->final_step(); };
+
+    my @processes = map{ $self->longsteps()->find_process( $_ ) } @$process_ids;
+    my @finished_processes = grep{ $_->status() eq 'terminated' } @processes;
+
+    $log->debug(scalar(@finished_processes)." are finished");
+
+    if( scalar( @processes ) == scalar( @finished_processes ) ){
+        $log->debug("Calling on_finish");
+        return $on_finish->( @finished_processes );
+    }
+    # Run at next tick
+    $log->debug("Will wait a little bit more");
+    return $self->new_step({ run_at => DateTime->now() });
 }
 
 __PACKAGE__->meta->make_immutable();

@@ -117,7 +117,7 @@ Simply do in your step 'do_last_stuff' implementation:
    sub do_choice1{...}
    sub do_choice2{...}
 
-=head2 FORKING AND JOINING PROCESSES
+=head2 FORKING AND WAITING FOR PROCESSES
 
 
   sub do_fork{
@@ -220,7 +220,7 @@ sub run_due_processes{
 
 =head2 instanciate_process
 
-Instanciate a process from the given process class returns a new process that will have an ID.
+Instanciate a stored process from the given process class returns a new process that will have an ID.
 
 =cut
 
@@ -243,6 +243,17 @@ sub instanciate_process{
         %{$step_props}
     });
     return $stored_process;
+}
+
+=head2 find_process
+
+Shortcut to $self->storage->find_process( $pid );
+
+=cut
+
+sub find_process{
+    my ($self, $pid) = @_;
+    return $self->storage()->find_process($pid);
 }
 
 __PACKAGE__->meta->make_immutable();

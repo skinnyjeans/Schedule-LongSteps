@@ -5,6 +5,7 @@ extends qw/Schedule::LongSteps::Storage/;
 
 use DateTime;
 
+use Log::Any qw/$log/;
 use MooseX::Iterator;
 
 =head1 NAME
@@ -28,7 +29,7 @@ has 'processes' => ( is => 'ro', isa => 'ArrayRef[Schedule::LongSteps::Storage::
 
 =head2 prepare_due_processes
 
-See L<Schedule::LongSteps::Storage::DBIxClass>
+See L<Schedule::LongSteps::Storage>
 
 =cut
 
@@ -52,6 +53,21 @@ sub prepare_due_processes{
     }
     return  MooseX::Iterator::Array->new( collection => \@to_run );
 }
+
+=head2 find_process
+
+See L<Schedule::LongSteps::Storage>
+
+=cut
+
+sub find_process{
+    my ($self, $pid) = @_;
+    $log->trace("Looking up process ID=$pid");
+    my ( $match ) = grep{ $_->id() == $pid } @{$self->processes()};
+    $log->trace("Found: $match");
+    return $match;
+}
+
 
 =head2 create_process
 

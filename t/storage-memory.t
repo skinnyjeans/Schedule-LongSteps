@@ -8,9 +8,8 @@ use DateTime;
 ok( my $storage = Schedule::LongSteps::Storage::Memory->new() );
 ok( ! $storage->prepare_due_processes()->has_next(), "Ok zero due steps");
 
-my $process_id = '12345';
-
-ok( $storage->create_process({ process_class => 'Blabla', process_id => $process_id, what => 'whatever', run_at =>  DateTime->now() })->id(), "Ok got ID");
+ok( my $process_id =  $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at =>  DateTime->now() })->id(), "Ok got ID");
+ok( $storage->find_process($process_id) );
 
 ok( $storage->prepare_due_processes()->has_next(), "Ok at least one due step");
 ok( ! $storage->prepare_due_processes()->has_next(), "Doing it again gives zero steps");

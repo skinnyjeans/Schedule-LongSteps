@@ -52,12 +52,14 @@ is( $storage->prepare_due_processes()->count() , 0 , "Ok zero due steps");
 # inside the LongSteps::Storage::DBIxClass code.
 my $dtf = $schema->storage()->datetime_parser();
 
-ok( $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) })->id(), "Ok got ID");
+ok( my $process_id = $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) })->id(), "Ok got ID");
+ok( $storage->find_process($process_id) );
 
 is( $storage->prepare_due_processes()->count() , 1 , "Ok one due step");
 is( $storage->prepare_due_processes()->count() , 0 , "Doing it again gives zero steps");
 
-$storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
+my $process = $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
+ok( $storage->find_process($process->id()));
 $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });
 
 my $steps = $storage->prepare_due_processes();
