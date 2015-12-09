@@ -121,13 +121,58 @@ Example:
 
 # COOKBOOK
 
+## WRITING A NEW PROCESS
+
+See 'QUICK START AND SYNOPSIS'
+
+## INSTANCIATING A NEW PROCESS
+
+See 'QUICK START AND SYNOPSIS'
+
+## RUNNING PROCESS STEPS
+
+See 'QUICK START AND SYNOPSIS
+
+## INJECTING PARAMETERS IN YOUR PROCESSES
+
+Of course each instance of your process will most probably need to
+act on different pieces of application data. The one and only way to
+give 'parameters' to your processes is to specify an initial state when
+you instanciate a process:
+
+    $longsteps->instantiate_process('My::App', { app => $app } , { work => 'on' , this => 'user_id' });
+
+## INJECTING CONTEXT IN YOUR PROCESSES
+
+Let's say you hold an instance of your application object:
+
+    my $app = ...;
+
+And you want to use it in your processes:
+
+    package MyProcess;
+    ...
+    has 'app' => (is => 'ro', isa => 'My::App', required => 1);
+
+You can inject your $app instance in your processes at instanciation time:
+
+    $longsteps->instantiate_process('My::App', { app => $app });
+
+And also when running the due steps:
+
+    $longsteps->run_due_steps({ app => $app });
+
+The injected context should be stable over time. Do NOT use this to inject parameters. (See INJECTING PARAMETERS).
+
+## PROCESS WRITING
+
 This package should  be expressive enough for you to implement business processes
 as complex as those given as an example on this page: [https://en.wikipedia.org/wiki/XPDL](https://en.wikipedia.org/wiki/XPDL)
 
 Proper support for XPDL is not implemented yet, but here is a list of recipes to implement
 the most common process patterns:
 
-## MOVING TO A FINAL STATE
+### MOVING TO A FINAL STATE
 
 Simply do in your step 'do\_last\_stuff' implementation:
 
@@ -137,7 +182,7 @@ Simply do in your step 'do\_last\_stuff' implementation:
        return $self->final_step({ state => { the => 'final' , state => 1 } });
     }
 
-## DO SOMETHING ELSE IN X AMOUNT OF TIME
+### DO SOMETHING ELSE IN X AMOUNT OF TIME
 
     sub do_stuff{
          ...
@@ -147,7 +192,7 @@ Simply do in your step 'do\_last\_stuff' implementation:
          return $self->new_step({ what => 'do_stuff_later', run_at => DateTime->now()->add( days => 2 ) ,  state => { some => 'new one' }});
     }
 
-## DO SOMETHING CONDITIONALLY
+### DO SOMETHING CONDITIONALLY
 
     sub do_choose{
        if( ... ){
@@ -159,7 +204,7 @@ Simply do in your step 'do\_last\_stuff' implementation:
     sub do_choice1{...}
     sub do_choice2{...}
 
-## FORKING AND WAITING FOR PROCESSES
+### FORKING AND WAITING FOR PROCESSES
 
     sub do_fork{
        ...

@@ -127,13 +127,59 @@ Example:
 
 =head1 COOKBOOK
 
+=head2 WRITING A NEW PROCESS
+
+See 'QUICK START AND SYNOPSIS'
+
+=head2 INSTANCIATING A NEW PROCESS
+
+See 'QUICK START AND SYNOPSIS'
+
+=head2 RUNNING PROCESS STEPS
+
+See 'QUICK START AND SYNOPSIS
+
+=head2 INJECTING PARAMETERS IN YOUR PROCESSES
+
+Of course each instance of your process will most probably need to
+act on different pieces of application data. The one and only way to
+give 'parameters' to your processes is to specify an initial state when
+you instanciate a process:
+
+  $longsteps->instantiate_process('My::App', { app => $app } , { work => 'on' , this => 'user_id' });
+
+=head2 INJECTING CONTEXT IN YOUR PROCESSES
+
+Let's say you hold an instance of your application object:
+
+  my $app = ...;
+
+And you want to use it in your processes:
+
+  package MyProcess;
+  ...
+  has 'app' => (is => 'ro', isa => 'My::App', required => 1);
+
+You can inject your $app instance in your processes at instanciation time:
+
+  $longsteps->instantiate_process('My::App', { app => $app });
+
+And also when running the due steps:
+
+  $longsteps->run_due_steps({ app => $app });
+
+The injected context should be stable over time. Do NOT use this to inject parameters. (See INJECTING PARAMETERS).
+
+
+=head2 PROCESS WRITING
+
 This package should  be expressive enough for you to implement business processes
 as complex as those given as an example on this page: L<https://en.wikipedia.org/wiki/XPDL>
 
 Proper support for XPDL is not implemented yet, but here is a list of recipes to implement
 the most common process patterns:
 
-=head2 MOVING TO A FINAL STATE
+=head3 MOVING TO A FINAL STATE
 
 Simply do in your step 'do_last_stuff' implementation:
 
@@ -143,7 +189,7 @@ Simply do in your step 'do_last_stuff' implementation:
       return $self->final_step({ state => { the => 'final' , state => 1 } });
    }
 
-=head2 DO SOMETHING ELSE IN X AMOUNT OF TIME
+=head3 DO SOMETHING ELSE IN X AMOUNT OF TIME
 
    sub do_stuff{
         ...
@@ -154,7 +200,7 @@ Simply do in your step 'do_last_stuff' implementation:
    }
 
 
-=head2 DO SOMETHING CONDITIONALLY
+=head3 DO SOMETHING CONDITIONALLY
 
    sub do_choose{
       if( ... ){
@@ -166,7 +212,7 @@ Simply do in your step 'do_last_stuff' implementation:
    sub do_choice1{...}
    sub do_choice2{...}
 
-=head2 FORKING AND WAITING FOR PROCESSES
+=head3 FORKING AND WAITING FOR PROCESSES
 
 
   sub do_fork{
