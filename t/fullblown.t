@@ -28,11 +28,19 @@ plan skip_all => "DateTime::Format::MySQL is required for this test" if $@;
 eval "use Net::EmptyPort";
 plan skip_all => "Net::EmptyPort is required for this test" if $@;
 
+#
+# This is a real life test. Using a common DB engine
+#
 my $test_mysql = Test::mysqld->new(
     my_cnf => {
         port => Net::EmptyPort::empty_port()
     });
 
+
+
+#
+#  We build a DBIx::Class::Schema, starting with the Result classes.
+#
 {
     package MyApp::Schema::Result::Patient;
     use base qw/DBIx::Class::Core/;
@@ -105,6 +113,9 @@ my $test_mysql = Test::mysqld->new(
     1;
 }
 
+#
+# Then we build our test Process.
+#
 {
     package MyMedicalProcess;
     # Inspired by https://en.wikipedia.org/wiki/XPDL Medical process example
@@ -208,6 +219,10 @@ my $test_mysql = Test::mysqld->new(
     }
     __PACKAGE__->meta->make_immutable();
 }
+
+#
+# Time to make all the wheels turn.
+#
 
 my $schema = MyApp::Schema->connect( $test_mysql->dsn(), '', '' );
 $schema->deploy();
