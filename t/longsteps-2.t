@@ -50,5 +50,4 @@ ok( ! $step->run_at() );
 
 ok( ! $long_steps->run_due_processes() );
 
-
 done_testing();

@@ -350,6 +350,7 @@ sub instantiate_process{
 
     my $stored_process = $self->storage->create_process({
         process_class => $process_class,
+        status => 'pending',
         state => $init_state,
         %{$step_props}
     });

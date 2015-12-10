@@ -47,6 +47,10 @@ A unique primary key auto incrementable identifier
 
 A VARCHAR long enough to hold  your L<Schedule::LongSteps::Process> class names. NOT NULL.
 
+=item what
+
+A VARCHAR long enough to hold the name of one of your steps. Can be NULL.
+
 =item status
 
 A VARCHAR(50) NOT NULL, defaults to 'pending'
