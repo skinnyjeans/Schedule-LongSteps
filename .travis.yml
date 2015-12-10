@@ -1,5 +1,5 @@
 language: perl
-sudo: true
+sudo: false
 
 perl:
   - "5.20"
@@ -9,8 +9,8 @@ perl:
   - "5.12"
   - "5.10"
 
-before_install:
-  - sudo apt-get install mysqld
+services:
+  - mysql
 
 install:
   - cpanm --notest --quiet Dist::Zilla
