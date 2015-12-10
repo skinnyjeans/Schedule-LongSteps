@@ -18,6 +18,8 @@ install:
   - cpanm --notest DBIx::Class::InflateColumn::Serializer
   - cpanm --notest Net::EmptyPort
   - cpanm --notest DBIx::Class::Schema::Loader
+  - cpanm --notest DateTime::Format::SQLite
+  - cpanm --notest SQL::Translator
   - dzil authordeps | cpanm --quiet --notest
   - cpanm --quiet --notest --installdeps .
 
