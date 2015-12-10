@@ -13,6 +13,10 @@ eval "use DBIx::Class::Schema::Loader";
 plan skip_all => "DBIx::Class::Schema::Loader is required for this test."
     if $@;
 
+eval "use DateTime::Format::SQLite";
+plan skip_all => "DateTime::Format::SQLite is required for this test."
+    if $@;
+
 my $create_table = q|
 CREATE TABLE longsteps_process( id INTEGER PRIMARY KEY AUTOINCREMENT,
                              process_class TEXT NOT NULL,

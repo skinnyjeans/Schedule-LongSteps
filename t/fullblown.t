@@ -2,13 +2,20 @@
 
 use Test::More;
 use Test::MockDateTime;
+
 use DateTime;
+
+use Schedule::LongSteps;
+use Schedule::LongSteps::Storage::DBIxClass;
 
 eval "use Test::mysqld";
 plan skip_all => "Test::mysqld is required for this test" if $@;
 
 eval "use DBIx::Class";
 plan skip_all => "DBIx::Class is required for this test" if $@;
+
+eval "use SQL::Translator";
+plan skip_all => "SQL::Translator is required for this test" if $@;
 
 eval "use DBIx::Class::InflateColumn::Serializer";
 plan skip_all => "DBIx::Class::InflateColumn::Serializer is required for this test" if $@;
@@ -61,6 +68,12 @@ my $test_mysql = Test::mysqld->new(
 my $schema = MyApp::Schema->connect( $test_mysql->dsn(), '', '' );
 $schema->deploy();
 
+# Time to build a storage
+
+my $storage = Schedule::LongSteps::Storage::DBIxClass->new({ schema => $schema,
+                                                             resultset_name => 'Process'
+                                                         });
+my $longsteps = Schedule::LongSteps->new({ storage => $storage });
 
 
 
