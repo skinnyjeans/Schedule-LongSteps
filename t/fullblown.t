@@ -52,6 +52,8 @@ my $test_mysql = Test::mysqld->new(
             { data_type => 'varchar', is_nullable => 0, size => 50 },
         looks_cancerous =>
             { data_type => 'integer', is_nullable => 0 , default_value => 0 },
+        family_history =>
+            { data_type => 'integer', is_nullable => 0 , default_value => 0 },
     );
     __PACKAGE__->set_primary_key("id");
     1;
@@ -173,9 +175,9 @@ my $test_mysql = Test::mysqld->new(
     sub do_prescribe{
         my ($self) = @_;
         my $state = $self->state();
-        if( $state->{looks_cancerous} &&
-                $state->{has_cancer_cells} &&
-                $state->{has_cancer_history}
+        if( $self->patient()->looks_cancerous() &&
+                ( $state->{has_cancer_cells} ||
+                  $state->{has_cancer_history} )
             ){
             return $self->final_step({ state => { %$state , have_treatment => 1 } });
         }
@@ -209,13 +211,19 @@ my $test_mysql = Test::mysqld->new(
 
     has 'schema' => ( is => 'ro', isa => 'DBIx::Class::Schema', required => 1);
 
+    has 'patient' => ( is => 'ro', lazy_build => 1);
+    sub _build_patient{
+        my ($self) = @_;
+        return $self->schema->resultset('Patient')->find($self->state()->{patient_id});
+    }
+
     sub build_first_step{
         my ($self) = @_;
         return $self->new_step({ what => 'do_analyze_family', run_at => DateTime->now()->add(days => 2) });
     }
     sub do_analyze_family{
         my ($self) = @_;
-        return $self->final_step({ state => { has_cancer_history => 0 } });
+        return $self->final_step({ state => { has_cancer_history => $self->patient->family_history() } });
     }
     __PACKAGE__->meta->make_immutable();
 }
@@ -230,6 +238,7 @@ $schema->deploy();
 
 my $patient = $schema->resultset('Patient')->create({ name => 'Joe Foobar' });
 my $cancerous_patient = $schema->resultset('Patient')->create({ name => 'Joe BarBaz' , looks_cancerous => 1 });
+my $cancerous_family  = $schema->resultset('Patient')->create({ name => 'Joe BarBaz' , looks_cancerous => 1 , family_history => 1 });
 
 # Build a process and run it.
 my $storage = Schedule::LongSteps::Storage::DBIxClass->new({ schema => $schema,
@@ -239,6 +248,7 @@ my $long_steps = Schedule::LongSteps->new({ storage => $storage });
 
 ok( my $healthy_process = $long_steps->instantiate_process('MyMedicalProcess', { schema => $schema } , { patient_id => $patient->id() }) );
 ok( my $cancer_process = $long_steps->instantiate_process('MyMedicalProcess', {  schema => $schema } , { patient_id => $cancerous_patient->id() }) );
+ok( my $family_process = $long_steps->instantiate_process('MyMedicalProcess', {  schema => $schema } , { patient_id => $cancerous_family->id() }) );
 
 # This would run in a completely separate process
 ok( $long_steps->run_due_processes({ schema => $schema }) );
@@ -273,6 +283,10 @@ on $three_days.'' => sub{
     $cancer_process->discard_changes();
     is( $cancer_process->status() , 'terminated' );
     is( $cancer_process->state()->{have_treatment}, 0 );
+
+    $family_process->discard_changes();
+    is( $family_process->status() , 'terminated' );
+    is( $family_process->state()->{have_treatment}, 1 );
 };
 
 

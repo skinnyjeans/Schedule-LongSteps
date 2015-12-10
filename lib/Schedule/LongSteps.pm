@@ -114,6 +114,11 @@ Then regularly (in a cron, or a recurring callback):
 
    $long_steps->run_due_steps({ thing => 'whatever' });
 
+=head1 EXAMPLE
+
+Look at L<https://github.com/jeteve/Schedule-LongSteps/blob/master/t/fullblown.t> for a full blown working
+example.
+
 =head1 PERSISTANCE
 
 The persistance of processes is managed by a subclass of L<Schedule::LongSteps::Storage> that you should instanciate
