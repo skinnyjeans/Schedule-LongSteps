@@ -78,7 +78,7 @@ First write a class to represent your long running set of steps
 
      .. Do some stuff and return the next step to execute ..
 
-      return $self->new_step({ what => 'do_stuff2', run_at => DateTime->... , state => [ 'some', 'jsonable', 'structure' ]  });
+      return $self->new_step({ what => 'do_stuff2', run_at => DateTime->... , state => { some => 'jsonable', hash => 'ref'  ]  });
   }
 
   sub do_stuff2{
@@ -86,7 +86,7 @@ First write a class to represent your long running set of steps
 
       $self->wait_for_steps('do_stuff1', 'do_stuff2' );
 
-      .. Do some stuff and terminate the process ..
+      .. Do some stuff and terminate the process or goto do_stuff1 ..
 
        if( ... ){
            return Schedule::LongSteps::Step->new({ what => 'do_stuff1', run_at => DateTime->... , state => { some jsonable structure } });
