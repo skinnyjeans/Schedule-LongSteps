@@ -1,5 +1,5 @@
 language: perl
-sudo: false
+sudo: true
 
 perl:
   - "5.20"
@@ -9,8 +9,13 @@ perl:
   - "5.12"
   - "5.10"
 
+before_install:
+  - sudo apt-get install mysqld
+
 install:
   - cpanm --notest --quiet Dist::Zilla
+  - cpanm --notest Test::mysqld
+  - cpanm --notest DBIx::Class::InflateColumn::Serializer
   - dzil authordeps | cpanm --quiet --notest
   - cpanm --quiet --notest --installdeps .
 

@@ -66,7 +66,12 @@ Please index this so it is fast to select rows with a matching run_id
 =item state
 
 A Reasonably long TEXT field (or JSON field in supporting databases) capable of holding
-a JSON dump of pure Perl data. NOT NULL and defaults to  '{}';
+a JSON dump of pure Perl data. NOT NULL.
+
+You HAVE to implement inflating and deflating yourself. See L<DBIx::Class::InflateColumn::Serializer::JSON>
+or similar techniques.
+
+See t/fullblown.t for a full blown working example.
 
 =item error
 
