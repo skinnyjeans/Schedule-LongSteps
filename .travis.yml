@@ -19,6 +19,7 @@ install:
   - cpanm --notest Net::EmptyPort
   - cpanm --notest DBIx::Class::Schema::Loader
   - cpanm --notest DateTime::Format::SQLite
+  - cpanm --notest DateTime::Format::MySQL
   - cpanm --notest SQL::Translator
   - dzil authordeps | cpanm --quiet --notest
   - cpanm --quiet --notest --installdeps .

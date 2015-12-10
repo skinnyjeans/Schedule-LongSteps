@@ -21,6 +21,10 @@ plan skip_all => "SQL::Translator is required for this test" if $@;
 eval "use DBIx::Class::InflateColumn::Serializer";
 plan skip_all => "DBIx::Class::InflateColumn::Serializer is required for this test" if $@;
 
+eval "use DateTime::Format::MySQL";
+plan skip_all => "DateTime::Format::MySQL is required for this test" if $@;
+
+
 eval "use Net::EmptyPort";
 plan skip_all => "Net::EmptyPort is required for this test" if $@;
 
@@ -140,9 +144,7 @@ my $test_mysql = Test::mysqld->new(
                         map{ %{$_->state()} } @processes
                     }});
             });
-
     }
-
     sub do_prescribe{
         my ($self) = @_;
         my $state = $self->state();
@@ -192,8 +194,6 @@ my $test_mysql = Test::mysqld->new(
     }
     __PACKAGE__->meta->make_immutable();
 }
-
-
 
 my $schema = MyApp::Schema->connect( $test_mysql->dsn(), '', '' );
 $schema->deploy();
