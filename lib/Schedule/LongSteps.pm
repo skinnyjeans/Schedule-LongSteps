@@ -6,7 +6,7 @@ use Moose;
 
 =head1 NAME
 
-Schedule::LongSteps - Manage long term processes over arbitrary large span of time.
+Schedule::LongSteps - Manage long term processes over arbitrary large spans of time.
 
 =head1 ABSTRACT
 
