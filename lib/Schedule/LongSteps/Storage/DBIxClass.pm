@@ -8,6 +8,8 @@ use DateTime;
 has 'schema' => ( is => 'ro', isa => 'DBIx::Class::Schema', required => 1);
 has 'resultset_name' => ( is => 'ro', isa => 'Str', required => 1);
 
+has 'limit_per_tick' => ( is => 'ro', isa => 'Int', default => 50 );
+
 sub _get_resultset{
     my ($self) = @_;
     return $self->schema()->resultset($self->resultset_name());
@@ -32,6 +34,32 @@ Then build and use a L<Schedule::LongSteps> object:
   my $long_steps = Schedule::LongSteps->new({ storage => $storage });
 
   ...
+
+=head1 ATTRIBUTES
+
+=over
+
+=item schema
+
+You DBIx::Class::Schema. Mandatory.
+
+=item resultset_name
+
+The name of the resultset holding the processes in your Schema. See section 'RESULTSET REQUIREMENTS'. Mandatory.
+
+=item limit_per_tick
+
+The maximum number of processes that will actually run each time you
+call $longsteps->run_due_processes(). Use that to control how long it takes to run
+a single call to $longsteps->run_due_processes().
+
+Note that you can have an arbitrary number of processes all doing $longsteps->run_due_processes() AT THE SAME TIME.
+
+This will ensure that no process step is run more than one time.
+
+Default to 50.
+
+=back
 
 =head1 RESULTSET REQUIREMENTS
 
@@ -102,9 +130,9 @@ sub prepare_due_processes{
 
     # Move the due ones to a specific 'transient' running status
     $rs->search({
-       run_at => { '<=' => $dtf->format_datetime( $now ) },
-       run_id => undef,
-    })->update({
+        run_at => { '<=' => $dtf->format_datetime( $now ) },
+        run_id => undef,
+    }, { rows => $self->limit_per_tick() , for => 'update' } )->update({
         run_id => $uuid,
         status => 'running'
     });
