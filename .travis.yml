@@ -16,6 +16,8 @@ install:
   - cpanm --notest --quiet Dist::Zilla
   - cpanm --notest Test::mysqld
   - cpanm --notest DBIx::Class::InflateColumn::Serializer
+  - cpanm --notest Net::EmptyPort
+  - cpanm --notest DBIx::Class::Schema::Loader
   - dzil authordeps | cpanm --quiet --notest
   - cpanm --quiet --notest --installdeps .
 
