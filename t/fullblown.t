@@ -88,6 +88,20 @@ my $test_mysql = Test::mysqld->new(
     package MyApp::Schema;
     use base qw/DBIx::Class::Schema/;
     __PACKAGE__->load_classes({ 'MyApp::Schema::Result' => [ 'Process', 'Patient' ] });
+
+    sub connection{
+        my ($class, @args ) = @_;
+        unless( ( ref $args[0] // '' ) eq 'CODE' ){
+            $args[3] //= {};
+            $args[3]->{AutoCommit} //= 1;
+            $args[3]->{RaiseError} = 1;
+            $args[3]->{mysql_enable_utf8} //= 1;
+            ## Only for mysql DSNs
+            $args[3]->{on_connect_do} = ["SET SESSION sql_mode = 'TRADITIONAL'"];
+        }
+        my $self = $class->next::method(@args);
+        return $self;
+    }
     1;
 }
 
