@@ -1,6 +1,6 @@
 package Schedule::LongSteps;
 
-# ABSTRACT: Manage sets of steps accross days, months, years.
+# ABSTRACT: Manage long term processes over arbitrary large spans of time.
 
 use Moose;
 
