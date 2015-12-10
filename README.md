@@ -97,7 +97,7 @@ Then in you main application do this once per 'target':
     my $longsteps = Schedule::LongSteps->new({ storage => $dbic_storage });
     ...
 
-    $longsteps->instanciate_process('My::Application::MyProcess', { thing => 'whatever' }, [ the, init, state ]);
+    $longsteps->instanciate_process('My::Application::MyProcess', { thing => 'whatever' }, { the => 'init', state => 1 });
 
 Then regularly (in a cron, or a recurring callback):
 
@@ -107,6 +107,11 @@ Then regularly (in a cron, or a recurring callback):
     ...
 
     $long_steps->run_due_steps({ thing => 'whatever' });
+
+# EXAMPLE
+
+Look at [https://github.com/jeteve/Schedule-LongSteps/blob/master/t/fullblown.t](https://github.com/jeteve/Schedule-LongSteps/blob/master/t/fullblown.t) for a full blown working
+example.
 
 # PERSISTANCE
 
