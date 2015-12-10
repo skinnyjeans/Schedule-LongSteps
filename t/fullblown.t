@@ -30,9 +30,25 @@ my $test_mysql = Test::mysqld->new(
     });
 
 {
+    package MyApp::Schema::Result::Patient;
+    use base qw/DBIx::Class::Core/;
+    __PACKAGE__->table('patient');
+    __PACKAGE__->add_columns(
+        id =>
+            { data_type => "integer", is_auto_increment => 1, is_nullable => 0 },
+        name =>
+            { data_type => 'varchar', is_nullable => 0, size => 50 },
+        looks_cancerous =>
+            { data_type => 'integer', is_nullable => 0 , default_value => 0 },
+    );
+    __PACKAGE__->set_primary_key("id");
+    1;
+}
+
+{
     package MyApp::Schema::Result::Process;
     use base qw/DBIx::Class::Core/;
-    __PACKAGE__->table('longprocesse');
+    __PACKAGE__->table('longprocess');
     __PACKAGE__->load_components(qw/InflateColumn::DateTime InflateColumn::Serializer/);
     __PACKAGE__->add_columns(
         id =>
@@ -67,7 +83,7 @@ my $test_mysql = Test::mysqld->new(
 {
     package MyApp::Schema;
     use base qw/DBIx::Class::Schema/;
-    __PACKAGE__->load_classes({ 'MyApp::Schema::Result' => [ 'Process' ] });
+    __PACKAGE__->load_classes({ 'MyApp::Schema::Result' => [ 'Process', 'Patient' ] });
     1;
 }
 
@@ -81,6 +97,12 @@ my $test_mysql = Test::mysqld->new(
 
     has 'schema' => ( is => 'ro', isa => 'DBIx::Class::Schema', required => 1);
 
+    has 'patient' => ( is => 'ro', lazy_build => 1 );
+    sub _build_patient{
+        my ($self) = @_;
+        return $self->schema()->resultset('Patient')->find($self->state()->{patient_id});
+    }
+
     sub build_first_step{
         my ($self) = @_;
         return $self->new_step({ what => 'do_first_look', run_at => DateTime->now() });
@@ -89,8 +111,8 @@ my $test_mysql = Test::mysqld->new(
     sub do_first_look{
         my ($self) = @_;
         my $state = $self->state();
-
-        if( ! $state->{looks_cancerous} ){
+        my $patient = $self->patient();
+        if( ! $patient->looks_cancerous() ){
             return $self->final_step({ state => { %$state , has_cancer => 0 } });
         }
         return $self->new_step({ what => 'do_analyze_more', run_at => DateTime->now() });
@@ -101,8 +123,8 @@ my $test_mysql = Test::mysqld->new(
         my $state = $self->state();
         my $p1 = $self->longsteps->instantiate_process('AnalyzePatient', { schema =>  $self->schema()  }, { %$state });
         my $p2 = $self->longsteps->instantiate_process('AnalyzeFamily', { schema => $self->schema() } , { %$state });
-        return $self->new_step({ what => 'do_synthetize_analyzes', run_at => DateTime->new()->add( days => 3 ),
-                                 { %$state , processes => [ $p1->id(), $p2->id() ] } });
+        return $self->new_step({ what => 'do_synthetize_analyzes', run_at => DateTime->now()->add( days => 3 ),
+                                 state => { %$state , processes => [ $p1->id(), $p2->id() ] } });
     }
     sub do_synthetize_analyzes{
         my ($self) = @_;
@@ -112,6 +134,7 @@ my $test_mysql = Test::mysqld->new(
                 my ( @processes ) = @_;
                 return $self->new_step({
                     what => 'do_prescribe',
+                    run_at => DateTime->now(),
                     state => {
                         %{$self->state()},
                         map{ %{$_->state()} } @processes
@@ -138,6 +161,9 @@ my $test_mysql = Test::mysqld->new(
     package AnalyzePatient;
     use Moose;
     extends qw/Schedule::LongSteps::Process/;
+
+    has 'schema' => ( is => 'ro', isa => 'DBIx::Class::Schema', required => 1);
+
     sub build_first_step{
         my ($self) = @_;
         return $self->new_step({ what => 'do_analyze_patient', run_at => DateTime->now() });
@@ -153,6 +179,9 @@ my $test_mysql = Test::mysqld->new(
     package AnalyzeFamily;
     use Moose;
     extends qw/Schedule::LongSteps::Process/;
+
+    has 'schema' => ( is => 'ro', isa => 'DBIx::Class::Schema', required => 1);
+
     sub build_first_step{
         my ($self) = @_;
         return $self->new_step({ what => 'do_analyze_family', run_at => DateTime->now()->add(days => 2) });
@@ -169,67 +198,53 @@ my $test_mysql = Test::mysqld->new(
 my $schema = MyApp::Schema->connect( $test_mysql->dsn(), '', '' );
 $schema->deploy();
 
-# Time to build a storage
 
+my $patient = $schema->resultset('Patient')->create({ name => 'Joe Foobar' });
+my $cancerous_patient = $schema->resultset('Patient')->create({ name => 'Joe BarBaz' , looks_cancerous => 1 });
+
+# Build a process and run it.
 my $storage = Schedule::LongSteps::Storage::DBIxClass->new({ schema => $schema,
                                                              resultset_name => 'Process'
                                                          });
 my $long_steps = Schedule::LongSteps->new({ storage => $storage });
 
-ok( my $healthy_process = $long_steps->instantiate_process('MyMedicalProcess', { schema => $schema } , { looks_cancerous => 0  }) );
+ok( my $healthy_process = $long_steps->instantiate_process('MyMedicalProcess', { schema => $schema } , { patient_id => $patient->id() }) );
+ok( my $cancer_process = $long_steps->instantiate_process('MyMedicalProcess', {  schema => $schema } , { patient_id => $cancerous_patient->id() }) );
 
 # This would run in a completely separate process
 ok( $long_steps->run_due_processes({ schema => $schema }) );
 
-$healthy_process->discard_changes();
+$healthy_process->discard_changes(); # This is needed, cause the framework only does 'update'
+$cancer_process->discard_changes();
+
 is( $healthy_process->status(), 'terminated' );
+is( $cancer_process->status(), 'paused' );
+is( $cancer_process->what() , 'do_analyze_more');
+
+ok( $long_steps->run_due_processes({ schema => $schema }) );
+$cancer_process->discard_changes();
+is( $cancer_process->what() , 'do_synthetize_analyzes');
+
+# Some stuff should run now.
+ok( $long_steps->run_due_processes({ schema => $schema }) );
+
+# Simulate 3 days after now.
+my $three_days = DateTime->now()->add( days => 3 );
+
+on $three_days.'' => sub{
+    # And more stuff should run three days after
+    ok( $long_steps->run_due_processes({ schema => $schema }) );
+    # Give it another go.
+    $long_steps->run_due_processes({ schema => $schema });
+    $cancer_process->discard_changes();
+    is( $cancer_process->what() , 'do_prescribe' );
+
+    # Give it another go and check that the final state is reached.
+    ok( $long_steps->run_due_processes({ schema => $schema }) );
+    $cancer_process->discard_changes();
+    is( $cancer_process->status() , 'terminated' );
+    is( $cancer_process->state()->{have_treatment}, 0 );
+};
 
 
-# use Schedule::LongSteps;
-
-# {
-#     package MyProcess;
-#     use Moose;
-#     extends qw/Schedule::LongSteps::Process/;
-
-#     use DateTime;
-#     sub build_first_step{
-#         my ($self) = @_;
-#         return $self->new_step({ what => 'do_stuff1', run_at => DateTime->now() });
-#     }
-
-#     sub do_stuff1{
-#         my ($self) = @_;
-#         return $self->new_step({ what => 'do_end', run_at => DateTime->now()->add( days => 2 ) });
-#     }
-
-#     sub do_end{
-#         my ($self) = @_;
-#         return $self->final_step({ state => { final => 'state' }});
-#     }
-# }
-
-
-# ok( my $long_steps = Schedule::LongSteps->new() );
-
-# ok( my $process = $long_steps->instantiate_process('MyProcess', undef, { beef => 'saussage' }) );
-
-# # Time to run!
-# ok( $long_steps->run_due_processes() );
-
-# is( $process->what() , 'do_end' );
-
-# # Nothing to run right now
-# ok( ! $long_steps->run_due_processes() );
-
-# # Simulate 3 days after now.
-# my $three_days = DateTime->now()->add( days => 3 );
-
-# on $three_days.'' => sub{
-#     ok( $long_steps->run_due_processes() , "Ok one step was run");
-# };
-
-# is_deeply( $process->state() , { final => 'state' });
-
-ok(1);
 done_testing();
