@@ -1,6 +1,7 @@
 #! perl -wt
 
 use strict;
+use warnings;
 use Test::More;
 use Test::MockDateTime;
 
@@ -9,24 +10,26 @@ use DateTime;
 use Schedule::LongSteps;
 use Schedule::LongSteps::Storage::DBIxClass;
 
-eval "use Test::mysqld";
-plan skip_all => "Test::mysqld is required for this test" if $@;
+BEGIN{
+  eval "use Test::mysqld";
+  plan skip_all => "Test::mysqld is required for this test" if $@;
 
-eval "use DBIx::Class";
-plan skip_all => "DBIx::Class is required for this test" if $@;
+  eval "use DBIx::Class";
+  plan skip_all => "DBIx::Class is required for this test" if $@;
 
-eval "use SQL::Translator";
-plan skip_all => "SQL::Translator is required for this test" if $@;
+  eval "use SQL::Translator";
+  plan skip_all => "SQL::Translator is required for this test" if $@;
 
-eval "use DBIx::Class::InflateColumn::Serializer";
-plan skip_all => "DBIx::Class::InflateColumn::Serializer is required for this test" if $@;
+  eval "use DBIx::Class::InflateColumn::Serializer";
+  plan skip_all => "DBIx::Class::InflateColumn::Serializer is required for this test" if $@;
 
-eval "use DateTime::Format::MySQL";
-plan skip_all => "DateTime::Format::MySQL is required for this test" if $@;
+  eval "use DateTime::Format::MySQL";
+  plan skip_all => "DateTime::Format::MySQL is required for this test" if $@;
 
 
-eval "use Net::EmptyPort";
-plan skip_all => "Net::EmptyPort is required for this test" if $@;
+  eval "use Net::EmptyPort";
+  plan skip_all => "Net::EmptyPort is required for this test" if $@;
+}
 
 #
 # This is a real life test. Using a common DB engine
