@@ -34,10 +34,9 @@ BEGIN{
 #
 # This is a real life test. Using a common DB engine
 #
-my $test_mysql = Test::mysqld->new(
-    my_cnf => {
-        port => Net::EmptyPort::empty_port()
-    });
+my $test_mysql = Test::mysqld->new(my_cnf => {
+                                              port => Net::EmptyPort::empty_port()
+                                             }) or plan skip_all => $Test::mysqld::errstr;
 
 
 
