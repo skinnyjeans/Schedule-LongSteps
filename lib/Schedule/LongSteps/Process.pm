@@ -71,7 +71,7 @@ the process terminates with the current state.
 
 sub final_step{
     my ($self, $step_properties) = @_;
-    $step_properties //= {};
+    defined( $step_properties ) or ( $step_properties = {} );
 
     return {
         %$step_properties,
@@ -101,8 +101,8 @@ given subprocesses have finished.
 
 sub wait_processes{
     my ($self, $process_ids, $on_finish) = @_;
-    $process_ids //= [];
-    $on_finish //= sub{ $self->final_step(); };
+    defined( $process_ids ) or ( $process_ids = [] );
+    defined( $on_finish ) or ( $on_finish = sub{ $self->final_step(); } );
 
     my @processes = map{ $self->longsteps()->find_process( $_ ) } @$process_ids;
     my @finished_processes = grep{ $_->status() eq 'terminated' } @processes;

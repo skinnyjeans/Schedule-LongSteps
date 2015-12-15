@@ -103,7 +103,7 @@ has 'error' => ( is => 'rw', isa => 'Maybe[Str]', default => sub{ undef; } );
 
 sub update{
     my ($self, $update_properties) = @_;
-    $update_properties //= {};
+    defined($update_properties) or ( $update_properties = {} );
 
     # use Data::Dumper;
     # warn "Updating with ".Dumper($update_properties);

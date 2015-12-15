@@ -343,8 +343,8 @@ sub run_due_processes{
 sub instantiate_process{
     my ($self, $process_class, $build_args, $init_state ) = @_;
 
-    $build_args //= {};
-    $init_state //= {};
+    defined( $build_args ) or ( $build_args = {} );
+    defined( $init_state ) or ( $init_state = {} );
 
     Class::Load::load_class($process_class);
     unless( $process_class->isa('Schedule::LongSteps::Process') ){
