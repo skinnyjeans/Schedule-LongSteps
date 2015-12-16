@@ -103,11 +103,11 @@ my $test_mysql = Test::mysqld->new(my_cnf => {
 
     sub connection{
         my ($class, @args ) = @_;
-        unless( ( ref $args[0] // '' ) eq 'CODE' ){
-            $args[3] //= {};
-            $args[3]->{AutoCommit} //= 1;
+        unless( ( ref $args[0] || '' ) eq 'CODE' ){
+            defined( $args[3] ) or ( $args[3] = {} );
+            $args[3]->{AutoCommit} = 1;
             $args[3]->{RaiseError} = 1;
-            $args[3]->{mysql_enable_utf8} //= 1;
+            $args[3]->{mysql_enable_utf8} = 1;
             ## Only for mysql DSNs
             $args[3]->{on_connect_do} = ["SET SESSION sql_mode = 'TRADITIONAL'"];
         }
