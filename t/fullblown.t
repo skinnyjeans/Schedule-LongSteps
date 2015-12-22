@@ -9,6 +9,7 @@ use DateTime;
 
 use Schedule::LongSteps;
 use Schedule::LongSteps::Storage::DBIxClass;
+use Schedule::LongSteps::Storage::AutoDBIx;
 
 BEGIN{
   eval "use Test::mysqld";
@@ -92,6 +93,7 @@ my $test_mysql = Test::mysqld->new(my_cnf => {
     sub sqlt_deploy_hook {
         my ($self, $sqlt_table) = @_;
         $sqlt_table->add_index(name => 'idx_longprocess_run_id', fields => ['run_id']);
+        $sqlt_table->add_index(name => 'idx_longprocess_run_at', fields => ['run_at']);
     }
     1;
 }
@@ -238,58 +240,71 @@ my $schema = MyApp::Schema->connect( $test_mysql->dsn(), '', '' );
 $schema->deploy();
 
 
-my $patient = $schema->resultset('Patient')->create({ name => 'Joe Foobar' });
-my $cancerous_patient = $schema->resultset('Patient')->create({ name => 'Joe BarBaz' , looks_cancerous => 1 });
-my $cancerous_family  = $schema->resultset('Patient')->create({ name => 'Joe BarBaz' , looks_cancerous => 1 , family_history => 1 });
+my $storage_dbixclass = Schedule::LongSteps::Storage::DBIxClass->new({
+    schema => $schema,
+    resultset_name => 'Process'
+});
+my $long_steps_dbixclass = Schedule::LongSteps->new({
+    storage => $storage_dbixclass
+});
 
-# Build a process and run it.
-my $storage = Schedule::LongSteps::Storage::DBIxClass->new({ schema => $schema,
-                                                             resultset_name => 'Process'
-                                                         });
-my $long_steps = Schedule::LongSteps->new({ storage => $storage });
+my $storage_auto = Schedule::LongSteps::Storage::AutoDBIx->new({ get_dbh => sub{ return $schema->storage()->dbh(); } });
+my $long_steps_auto = Schedule::LongSteps->new({
+    storage => $storage_auto
+});
 
-ok( my $healthy_process = $long_steps->instantiate_process('MyMedicalProcess', { schema => $schema } , { patient_id => $patient->id() }) );
-ok( my $cancer_process = $long_steps->instantiate_process('MyMedicalProcess', {  schema => $schema } , { patient_id => $cancerous_patient->id() }) );
-ok( my $family_process = $long_steps->instantiate_process('MyMedicalProcess', {  schema => $schema } , { patient_id => $cancerous_family->id() }) );
+foreach my $long_steps ( $long_steps_dbixclass , $long_steps_auto ){
 
-# This would run in a completely separate process
-ok( $long_steps->run_due_processes({ schema => $schema }) );
+    # Build some data, a  process and run it.
 
-$healthy_process->discard_changes(); # This is needed, cause the framework only does 'update'
-$cancer_process->discard_changes();
+    my $patient = $schema->resultset('Patient')->create({ name => 'Joe Foobar' });
+    my $cancerous_patient = $schema->resultset('Patient')->create({ name => 'Joe BarBaz' , looks_cancerous => 1 });
+    my $cancerous_family  = $schema->resultset('Patient')->create({ name => 'Joe BarBaz' , looks_cancerous => 1 , family_history => 1 });
 
-is( $healthy_process->status(), 'terminated' );
-is( $cancer_process->status(), 'paused' );
-is( $cancer_process->what() , 'do_analyze_more');
 
-ok( $long_steps->run_due_processes({ schema => $schema }) );
-$cancer_process->discard_changes();
-is( $cancer_process->what() , 'do_synthetize_analyzes');
+    ok( my $healthy_process = $long_steps->instantiate_process('MyMedicalProcess', { schema => $schema } , { patient_id => $patient->id() }) );
+    ok( my $cancer_process = $long_steps->instantiate_process('MyMedicalProcess', {  schema => $schema } , { patient_id => $cancerous_patient->id() }) );
+    ok( my $family_process = $long_steps->instantiate_process('MyMedicalProcess', {  schema => $schema } , { patient_id => $cancerous_family->id() }) );
 
-# Some stuff should run now.
-ok( $long_steps->run_due_processes({ schema => $schema }) );
-
-# Simulate 3 days after now.
-my $three_days = DateTime->now()->add( days => 3 );
-
-on $three_days.'' => sub{
-    # And more stuff should run three days after
+    # This would run in a completely separate process
     ok( $long_steps->run_due_processes({ schema => $schema }) );
-    # Give it another go.
-    $long_steps->run_due_processes({ schema => $schema });
-    $cancer_process->discard_changes();
-    is( $cancer_process->what() , 'do_prescribe' );
 
-    # Give it another go and check that the final state is reached.
+    $healthy_process->discard_changes(); # This is needed, cause the framework only does 'update'
+    $cancer_process->discard_changes();
+
+    is( $healthy_process->status(), 'terminated' );
+    is( $cancer_process->status(), 'paused' );
+    is( $cancer_process->what() , 'do_analyze_more');
+
     ok( $long_steps->run_due_processes({ schema => $schema }) );
     $cancer_process->discard_changes();
-    is( $cancer_process->status() , 'terminated' );
-    is( $cancer_process->state()->{have_treatment}, 0 );
+    is( $cancer_process->what() , 'do_synthetize_analyzes');
 
-    $family_process->discard_changes();
-    is( $family_process->status() , 'terminated' );
-    is( $family_process->state()->{have_treatment}, 1 );
-};
+    # Some stuff should run now.
+    ok( $long_steps->run_due_processes({ schema => $schema }) );
+
+    # Simulate 3 days after now.
+    my $three_days = DateTime->now()->add( days => 3 );
+
+    on $three_days.'' => sub{
+        # And more stuff should run three days after
+        ok( $long_steps->run_due_processes({ schema => $schema }) );
+        # Give it another go.
+        $long_steps->run_due_processes({ schema => $schema });
+        $cancer_process->discard_changes();
+        is( $cancer_process->what() , 'do_prescribe' );
+
+        # Give it another go and check that the final state is reached.
+        ok( $long_steps->run_due_processes({ schema => $schema }) );
+        $cancer_process->discard_changes();
+        is( $cancer_process->status() , 'terminated' );
+        is( $cancer_process->state()->{have_treatment}, 0 );
+
+        $family_process->discard_changes();
+        is( $family_process->status() , 'terminated' );
+        is( $family_process->state()->{have_treatment}, 1 );
+    };
+}
 
 
 done_testing();
