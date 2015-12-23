@@ -44,6 +44,13 @@ sub _build_dbix_class_storage{
 
 Schedule::LongSteps::Storage::AutoDBIx - An automatically deployed storage.
 
+=head1 DEPENDENCIES
+
+To use this, you will have to add the following dependencies to your dependency manager:
+
+L<DBIx::Class>, L<SQL::Translator>, L<DBIx::Class::InflateColumn::Serializer>, and one
+of DateTime::Format::* matching your database.
+
 =head1 SYNOPSIS
 
 First instanciate a storage with a subroutine returning a valid $dbh (from L<DBI> for instance,
@@ -54,7 +61,8 @@ or from your own L<DBIx::Class::Schema>)):
                 });
 
 Note that this will automatically create a table named 'schedule_longsteps_process'
-in your database. This is not configurable for now.
+in your database. This is not configurable for now. That also means that building such
+a storage is slow, so try to do it only once in your application.
 
 Then build and use a L<Schedule::LongSteps> object:
 

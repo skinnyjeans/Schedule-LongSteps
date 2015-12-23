@@ -44,6 +44,8 @@ or a final step marker.
 
 A storage provides the backend to persist processes. Build a Schedule::LongSteps with a storage instance.
 
+See section PERSISTANCE for a list of available storage classes.
+
 =head2 Manager: Schedule::LongSteps
 
 A L<Schedule::LongSteps> provides an entry point to all thing related to Schedule::LongSteps process management.
@@ -129,6 +131,26 @@ Example:
    my $dbic_storage = Schedule::LongSteps::Storage::DBIxClass->new(...);
    my $longsteps = Schedule::LongSteps->new({ storage => $dbic_storage });
    ...
+
+Out of the box, the following storage classes are available:
+
+=over
+
+=item L<Schedule::LongSteps::Storage::Memory>
+
+Persist processes in memory. Not very useful, except for testing. This is the storage of choice to unit test your processes.
+
+=item L<Schedule::LongSteps::Storage::AutoDBIx>
+
+Persist processes in a relational DB (a $dbh from L<DBI>). This is the easiest thing to use if you want to persist processes in a database, without having
+to worry about creating a DBIx::Class model yourself.
+
+=item L<Schedule::LongSteps::Storage::DBIxClass>
+
+Persist processes in an existing L<DBIx::Class> schema. Nice if you want to have only one instance of Schema in your application and if
+don't mind writing your own resultset.
+
+=back
 
 =head1 COOKBOOK
 

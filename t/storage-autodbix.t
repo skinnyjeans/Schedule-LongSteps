@@ -2,7 +2,6 @@
 
 use Test::More;
 
-use Schedule::LongSteps::Storage::AutoDBIx;
 use DateTime;
 
 eval "use DBD::SQLite";
@@ -26,6 +25,8 @@ my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', undef, undef, {
     AutoCommit => 1,
     RaiseError => 1
 });
+
+use_ok('Schedule::LongSteps::Storage::AutoDBIx');
 
 ok( my $storage = Schedule::LongSteps::Storage::AutoDBIx->new({ get_dbh => sub{ $dbh; } }) );
 # $storage->deploy();

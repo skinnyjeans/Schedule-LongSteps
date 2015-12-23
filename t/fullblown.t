@@ -8,8 +8,6 @@ use Test::MockDateTime;
 use DateTime;
 
 use Schedule::LongSteps;
-use Schedule::LongSteps::Storage::DBIxClass;
-use Schedule::LongSteps::Storage::AutoDBIx;
 
 BEGIN{
   eval "use Test::mysqld";
@@ -27,10 +25,10 @@ BEGIN{
   eval "use DateTime::Format::MySQL";
   plan skip_all => "DateTime::Format::MySQL is required for this test" if $@;
 
-
   eval "use Net::EmptyPort";
   plan skip_all => "Net::EmptyPort is required for this test" if $@;
 }
+
 
 #
 # This is a real life test. Using a common DB engine
@@ -238,6 +236,10 @@ my $test_mysql = Test::mysqld->new(my_cnf => {
 
 my $schema = MyApp::Schema->connect( $test_mysql->dsn(), '', '' );
 $schema->deploy();
+
+
+use_ok('Schedule::LongSteps::Storage::DBIxClass');
+use_ok('Schedule::LongSteps::Storage::AutoDBIx');
 
 
 my $storage_dbixclass = Schedule::LongSteps::Storage::DBIxClass->new({
