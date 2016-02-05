@@ -21,7 +21,7 @@ Schedule::LongSteps::Storage::DBIxClass - DBIx::Class based storage.
 
 =head1 SYNOPSIS
 
-First instanciate a storage with your L<DBIx::Class::Schema> and the name
+First instantiate a storage with your L<DBIx::Class::Schema> and the name
 of the resultset that represent the stored process:
 
   my $storage = Schedule::LongSteps::Storage::DBIxClass->new({

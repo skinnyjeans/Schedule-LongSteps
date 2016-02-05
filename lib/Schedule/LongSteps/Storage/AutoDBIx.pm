@@ -53,7 +53,7 @@ of DateTime::Format::* matching your database.
 
 =head1 SYNOPSIS
 
-First instanciate a storage with a subroutine returning a valid $dbh (from L<DBI> for instance,
+First instantiate a storage with a subroutine returning a valid $dbh (from L<DBI> for instance,
 or from your own L<DBIx::Class::Schema>)):
 
   my $storage = Schedule::LongSteps::Storage::AutoDBIx->new({
