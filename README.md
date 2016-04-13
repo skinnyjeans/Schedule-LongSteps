@@ -99,7 +99,7 @@ Then in you main application do this once per 'target':
     my $longsteps = Schedule::LongSteps->new({ storage => $dbic_storage });
     ...
 
-    $longsteps->instanciate_process('My::Application::MyProcess', { thing => 'whatever' }, { the => 'init', state => 1 });
+    $longsteps->instantiate_process('My::Application::MyProcess', { thing => 'whatever' }, { the => 'init', state => 1 });
 
 Then regularly (in a cron, or a recurring callback):
 
@@ -117,7 +117,7 @@ example.
 
 # PERSISTANCE
 
-The persistance of processes is managed by a subclass of [Schedule::LongSteps::Storage](https://metacpan.org/pod/Schedule::LongSteps::Storage) that you should instanciate
+The persistance of processes is managed by a subclass of [Schedule::LongSteps::Storage](https://metacpan.org/pod/Schedule::LongSteps::Storage) that you should instantiate
 and given to the constructor of [Schedule::LongSteps](https://metacpan.org/pod/Schedule::LongSteps)
 
 Example:
@@ -148,7 +148,7 @@ Out of the box, the following storage classes are available:
 
 See 'QUICK START AND SYNOPSIS'
 
-## INSTANCIATING A NEW PROCESS
+## INSTANTIATING A NEW PROCESS
 
 See 'QUICK START AND SYNOPSIS'
 
@@ -161,7 +161,7 @@ See 'QUICK START AND SYNOPSIS
 Of course each instance of your process will most probably need to
 act on different pieces of application data. The one and only way to
 give 'parameters' to your processes is to specify an initial state when
-you instanciate a process:
+you instantiate a process:
 
     $longsteps->instantiate_process('My::App', { app => $app } , { work => 'on' , this => 'user_id' });
 
@@ -177,7 +177,7 @@ And you want to use it in your processes:
     ...
     has 'app' => (is => 'ro', isa => 'My::App', required => 1);
 
-You can inject your $app instance in your processes at instanciation time:
+You can inject your $app instance in your processes at instantiation time:
 
     $longsteps->instantiate_process('My::App', { app => $app });
 
@@ -231,8 +231,8 @@ Simply do in your step 'do\_last\_stuff' implementation:
 
     sub do_fork{
        ...
-       my $p1 = $self->longsteps->instanciate_process('AnotherProcessClass', \%build_args , \%initial_state );
-       my $p2 = $self->longsteps->instanciate_process('YetAnotherProcessClass', \%build_args2 , \%initial_state2 );
+       my $p1 = $self->longsteps->instantiate_process('AnotherProcessClass', \%build_args , \%initial_state );
+       my $p2 = $self->longsteps->instantiate_process('YetAnotherProcessClass', \%build_args2 , \%initial_state2 );
        ...
        return $self->new_step({ what => 'do_join', run_at => DateTime->now() , { processes => [ $p1->id(), p2->id() ] } });
     }
@@ -271,7 +271,7 @@ Returns the number of processes run
 
 ## instantiate\_process
 
-Instanciate a stored process from the given process class returns a new process that will have an ID.
+Instantiate a stored process from the given process class returns a new process that will have an ID.
 
 Usage:
 
