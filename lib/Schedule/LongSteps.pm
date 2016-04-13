@@ -334,13 +334,16 @@ sub run_due_processes{
     my $stored_processes = $self->storage->prepare_due_processes();
     my $process_count = 0;
     while( my $stored_process = $stored_processes->next() ){
-        Class::Load::load_class($stored_process->process_class());
-        my $process = $stored_process->process_class()->new({ longsteps => $self, stored_process => $stored_process, %{$context} });
         my $process_method = $stored_process->what();
 
         $process_count++;
 
-        my $new_step_properties = eval{ $process->$process_method(); };
+        my $new_step_properties = eval{
+            Class::Load::load_class($stored_process->process_class());
+            my $process = $stored_process->process_class()->new({ longsteps => $self, stored_process => $stored_process, %{$context} });
+
+            $process->$process_method();
+        };
         if( my $err = $@ ){
             $log->error("Error running process ".$stored_process->process_class().':'.$stored_process->id().' :'.$err);
             $stored_process->update({

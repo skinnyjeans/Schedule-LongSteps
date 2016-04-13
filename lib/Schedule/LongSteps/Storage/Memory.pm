@@ -93,7 +93,7 @@ use DateTime;
 my $IDSEQUENCE = 0;
 
 has 'id' => ( is => 'ro', isa => 'Int', default => sub{ ++$IDSEQUENCE ; } );
-has 'process_class' => ( is => 'ro', isa => 'Str', required => 1);
+has 'process_class' => ( is => 'rw', isa => 'Str', required => 1); # rw only for test. Should not changed ever.
 has 'status' => ( is => 'rw', isa => 'Str', default => 'pending' );
 has 'what' => ( is => 'rw' ,  isa => 'Str', required => 1);
 has 'run_at' => ( is => 'rw', isa => 'Maybe[DateTime]', default => sub{ undef; } );

@@ -30,11 +30,18 @@ ok( my $long_steps = Schedule::LongSteps->new() );
 
 ok( my $step = $long_steps->instantiate_process('MyProcess', undef, { beef => 'saussage' }) );
 
+ok( my $fakestep = $long_steps->instantiate_process('MyProcess', undef, { beef => 'kdowkdowk' }) );
+# This simulates the fact that this process class could now be impossible to load.
+# The subsequent run_due_process should not break and just
+# report the error in $fakestep
+$fakestep->update({ process_class => 'BladiBlabla' });
+
 is( $step->what() , 'do_stuff1' );
 is_deeply( $step->state() , { beef => 'saussage' });
 
 # Time to run!
 ok( $long_steps->run_due_processes() );
+like( $fakestep->error() , qr/locate BladiBlabla\.pm/ );
 
 # And check the step properties have been
 is_deeply( $step->state(), { some => 'new one' });
