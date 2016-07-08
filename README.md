@@ -156,6 +156,22 @@ See 'QUICK START AND SYNOPSIS'
 
 See 'QUICK START AND SYNOPSIS
 
+## BEING NOTIFIED OF ANY OF YOUR PROCESS ERROR
+
+Use the property 'on\_error' on the Schedule::LongStep manager:
+
+    my $longsteps = Schedule::LongStep->new({ storage => ..,
+                                              on_error => sub{
+                                                my ( $stored_process ) = @_;
+                                                .. do stuff with: ..
+                                                $stored_process->error(), $stored_process->process_class(),
+                                                $stored_process->state(), etc...
+                                              }
+                                             });
+
+Note that an error in your error handler itself will result in the output of
+a pure Perl warning and an emmission of a 'critical' level [Log::Any](https://metacpan.org/pod/Log::Any) log event.
+
 ## INJECTING PARAMETERS IN YOUR PROCESSES
 
 Of course each instance of your process will most probably need to
@@ -247,6 +263,16 @@ Simply do in your step 'do\_last\_stuff' implementation:
             return $self->...
        });
     }
+
+# ATTRIBUTES
+
+- storage
+
+    An instance of a subclass of [Schedule::LongSteps::Storage](https://metacpan.org/pod/Schedule::LongSteps::Storage). See SYNOPSIS.
+
+- on\_error
+
+    A callback called like $on\_error->( $stored\_process ). See COOKBOOK for an example
 
 # METHODS
 
