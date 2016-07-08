@@ -166,6 +166,23 @@ See 'QUICK START AND SYNOPSIS'
 
 See 'QUICK START AND SYNOPSIS
 
+=head2 BEING NOTIFIED OF ANY OF YOUR PROCESS ERROR
+
+Use the property 'on_error' on the Schedule::LongStep manager:
+
+
+  my $longsteps = Schedule::LongStep->new({ storage => ..,
+                                            on_error => sub{
+                                              my ( $stored_process ) = @_;
+                                              .. do stuff with: ..
+                                              $stored_process->error(), $stored_process->process_class(),
+                                              $stored_process->state(), etc...
+                                            }
+                                           });
+
+Note that an error in your error handler itself will result in the output of
+a pure Perl warning and an emmission of a 'critical' level L<Log::Any> log event.
+
 =head2 INJECTING PARAMETERS IN YOUR PROCESSES
 
 Of course each instance of your process will most probably need to
@@ -261,6 +278,20 @@ Simply do in your step 'do_last_stuff' implementation:
      });
   }
 
+=head1 ATTRIBUTES
+
+=over
+
+=item storage
+
+An instance of a subclass of L<Schedule::LongSteps::Storage>. See SYNOPSIS.
+
+=item on_error
+
+A callback called like $on_error->( $stored_process ). See COOKBOOK for an example
+
+=back
+
 =head1 METHODS
 
 =head2 uuid
@@ -315,6 +346,8 @@ use Schedule::LongSteps::Storage::Memory;
 
 has 'storage' => ( is => 'ro', isa => 'Schedule::LongSteps::Storage', lazy_build => 1);
 
+has 'on_error' => ( is => 'ro', isa => 'CodeRef', default => sub{ return sub{}; } );
+
 sub _build_storage{
     my ($self) = @_;
     $log->warn("No storage specified. Will use Memory storage");
@@ -352,6 +385,11 @@ sub run_due_processes{
                 run_at => undef,
                 run_id => undef,
             });
+            eval{ $self->on_error()->( $stored_process ); };
+            if( my $on_error_error = $@ ){
+                warn("Error handler triggered an error: $on_error_error");
+                $log->critical("Error handler triggered an error: $on_error_error");
+            }
             next;
         }
 

@@ -12,6 +12,7 @@ services:
 
 install:
   - cpanm --notest --quiet Dist::Zilla
+  - cpanm DBD::mysql@4.033
   - cpanm --notest Test::mysqld
   - cpanm --notest DBIx::Class::InflateColumn::Serializer
   - cpanm --notest Net::EmptyPort
