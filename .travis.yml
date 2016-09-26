@@ -10,6 +10,11 @@ perl:
 services:
   - mysql
 
+cache:
+  directories:
+    - $HOME/perl5/perlbrew/perls/$TRAVIS_PERL_VERSION/lib/site_perl/
+    - $HOME/perl5/perlbrew/perls/$TRAVIS_PERL_VERSION/bin/
+
 install:
   - cpanm --notest --quiet Dist::Zilla
   - cpanm DBD::mysql@4.033
