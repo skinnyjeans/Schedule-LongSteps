@@ -1,5 +1,8 @@
 #! perl -wt
 
+use strict;
+use warnings;
+
 use Test::More;
 
 use DateTime;
@@ -37,15 +40,26 @@ is( $storage->prepare_due_processes()->count() , 0 , "Ok zero due steps");
 # inside the LongSteps::Storage::DBIxClass code.
 my $dtf = $storage->schema->storage()->datetime_parser();
 
-ok( my $process_id = $storage->create_process({ process_class => 'Blabla',
-                                                state => {},
-                                                what => 'whatever',
-                                                run_at => $dtf->format_datetime( DateTime->now() )
-                                            })->id(), "Ok got ID");
-ok( $storage->find_process($process_id) );
+{
+    $dbh->begin_work();
+    ok( my $process_id = $storage->create_process({ process_class => 'Blabla',
+                                                    state => {},
+                                                    what => 'whatever',
+                                                    run_at => $dtf->format_datetime( DateTime->now() )
+                                                })->id(), "Ok got ID");
+    $dbh->commit();
+    ok( $storage->find_process($process_id) );
+}
 
-is( $storage->prepare_due_processes()->count() , 1 , "Ok one due step");
-is( $storage->prepare_due_processes()->count() , 0 , "Doing it again gives zero steps");
+
+{
+    $dbh->begin_work();
+    my $due_processes = $storage->prepare_due_processes();
+    ok( $due_processes->next() ,  "Ok one due process");
+    ok( ! $due_processes->next() , "Ok no more due process");
+    is( $storage->prepare_due_processes()->count() , 0 , "Doing it again gives zero steps");
+    $dbh->commit();
+}
 
 my $process = $storage->create_process({ process_class => 'Blabla',
                                          what => 'whatever',

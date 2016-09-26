@@ -8,6 +8,7 @@ use Log::Any qw/$log/;
 use Schedule::LongSteps::Storage::DBIxClass;
 use Schedule::LongSteps::Storage::AutoDBIx::Schema;
 
+use Scope::Guard;
 
 use DateTime;
 
@@ -39,6 +40,29 @@ sub _build_dbix_class_storage{
                                                                  resultset_name => 'LongstepProcess'
                                                              });
 }
+
+around [ 'prepare_due_processes', 'create_process' ] => sub{
+    my ($orig, $self, @rest ) = @_;
+
+    # Transfer the current autocommit nature of the DBH
+    # as a transation might have been created on this DBH outside
+    # of this schema. A transaction on DBI sets AutoCommit to false
+    # on the DBH. transaction_depth is just a boolean on the storage.
+
+    # First restore transaction depth as it was.
+    my $pre_transaction_depth = $self->schema()->storage()->transaction_depth();
+    my $guard = Scope::Guard->new(
+        sub{
+            $log->trace("Restoring transaction_depth = $pre_transaction_depth");
+            $self->schema()->storage()->transaction_depth( $pre_transaction_depth );
+        });
+
+    my $current_transaction_depth = $self->schema()->storage()->dbh()->{AutoCommit} ? 0 : 1;
+    $log->trace("Setting transaction_depth as NOT dbh AutoCommit = ".$current_transaction_depth);
+    $self->schema()->storage()->transaction_depth( $current_transaction_depth );
+    my $ret = $self->$orig( @rest );
+    return $ret;
+};
 
 =head1 NAME
 
