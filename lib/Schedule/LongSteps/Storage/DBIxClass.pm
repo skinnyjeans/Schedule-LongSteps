@@ -129,13 +129,29 @@ sub prepare_due_processes{
     my $uuid = $self->uuid()->create_str();
 
     # Move the due ones to a specific 'transient' running status
-    $rs->search({
-        run_at => { '<=' => $dtf->format_datetime( $now ) },
-        run_id => undef,
-    }, { rows => $self->limit_per_tick() , for => 'update' } )->update({
-        run_id => $uuid,
-        status => 'running'
-    });
+    # in a transaction that would prevent any other process
+    # to update the same rows.
+    #
+    # Note that for => 'update' only works in a transaction
+    # Outside a transaction, it just doesn't do anything.
+    #
+    # See note in L<http://dev.mysql.com/doc/refman/5.6/en/innodb-locking-reads.html>
+    # and
+    # L<http://search.cpan.org/~ribasushi/DBIx-Class-Manual-SQLHackers-1.3/lib/DBIx/Class/Manual/SQLHackers/SELECT.pod#SELECT_..._FOR_UPDATE>
+    #
+    my $stuff = sub{
+        $rs->search({
+            run_at => { '<=' => $dtf->format_datetime( $now ) },
+            run_id => undef,
+        }, { rows => $self->limit_per_tick(),
+             for => 'update' } )
+            ->update({
+                run_id => $uuid,
+                status => 'running'
+            });
+    };
+
+    $self->schema()->txn_do( $stuff );
 
     # And return them as a resultset
     return $rs->search({
