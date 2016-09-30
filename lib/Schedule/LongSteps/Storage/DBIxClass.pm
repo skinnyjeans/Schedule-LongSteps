@@ -4,6 +4,8 @@ use Moose;
 extends qw/Schedule::LongSteps::Storage/;
 
 use DateTime;
+use Log::Any qw/$log/;
+use Scope::Guard;
 
 has 'schema' => ( is => 'ro', isa => 'DBIx::Class::Schema', required => 1);
 has 'resultset_name' => ( is => 'ro', isa => 'Str', required => 1);
@@ -14,6 +16,29 @@ sub _get_resultset{
     my ($self) = @_;
     return $self->schema()->resultset($self->resultset_name());
 }
+
+around [ 'prepare_due_processes', 'create_process' ] => sub{
+    my ($orig, $self, @rest ) = @_;
+
+    # Transfer the current autocommit nature of the DBH
+    # as a transation might have been created on this DBH outside
+    # of this schema. A transaction on DBI sets AutoCommit to false
+    # on the DBH. transaction_depth is just a boolean on the storage.
+
+    # First restore transaction depth as it was.
+    my $pre_transaction_depth = $self->schema()->storage()->transaction_depth();
+    my $guard = Scope::Guard->new(
+        sub{
+            $log->trace("Restoring transaction_depth = $pre_transaction_depth");
+            $self->schema()->storage()->transaction_depth( $pre_transaction_depth );
+        });
+
+    my $current_transaction_depth = $self->schema()->storage()->dbh()->{AutoCommit} ? 0 : 1;
+    $log->trace("Setting transaction_depth as NOT dbh AutoCommit = ".$current_transaction_depth);
+    $self->schema()->storage()->transaction_depth( $current_transaction_depth );
+    return $self->$orig( @rest );
+};
+
 
 =head1 NAME
 
@@ -143,8 +168,9 @@ sub prepare_due_processes{
         $rs->search({
             run_at => { '<=' => $dtf->format_datetime( $now ) },
             run_id => undef,
-        }, { rows => $self->limit_per_tick(),
-             for => 'update' } )
+        }, {
+            rows => $self->limit_per_tick(),
+        } )
             ->update({
                 run_id => $uuid,
                 status => 'running'
@@ -156,7 +182,7 @@ sub prepare_due_processes{
     # And return them as a resultset
     return $rs->search({
         run_id => $uuid,
-    });
+    })->all();
 }
 
 =head2 create_process

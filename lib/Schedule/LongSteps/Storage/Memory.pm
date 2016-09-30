@@ -6,7 +6,6 @@ extends qw/Schedule::LongSteps::Storage/;
 use DateTime;
 
 use Log::Any qw/$log/;
-use MooseX::Iterator;
 
 =head1 NAME
 
@@ -51,7 +50,7 @@ sub prepare_due_processes{
             push @to_run , $process;
         }
     }
-    return  MooseX::Iterator::Array->new( collection => \@to_run );
+    return @to_run;
 }
 
 =head2 find_process

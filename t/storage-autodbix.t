@@ -33,7 +33,7 @@ use_ok('Schedule::LongSteps::Storage::AutoDBIx');
 
 ok( my $storage = Schedule::LongSteps::Storage::AutoDBIx->new({ get_dbh => sub{ $dbh; } }) );
 # $storage->deploy();
-is( $storage->prepare_due_processes()->count() , 0 , "Ok zero due steps");
+is( scalar( $storage->prepare_due_processes() ) , 0 , "Ok zero due steps");
 
 # Note that we need that for SQLite, cause it hasnt got
 # a datetime type. Therefore, we need to make sure the format is consistent with what is done
@@ -54,10 +54,9 @@ my $dtf = $storage->schema->storage()->datetime_parser();
 
 {
     $dbh->begin_work();
-    my $due_processes = $storage->prepare_due_processes();
-    ok( $due_processes->next() ,  "Ok one due process");
-    ok( ! $due_processes->next() , "Ok no more due process");
-    is( $storage->prepare_due_processes()->count() , 0 , "Doing it again gives zero steps");
+    my @due_processes = $storage->prepare_due_processes();
+    is( scalar( @due_processes )  , 1);
+    is( scalar( $storage->prepare_due_processes() ) , 0 , "Doing it again gives zero steps");
     $dbh->commit();
 }
 
@@ -73,11 +72,11 @@ $storage->create_process({ process_class => 'Blabla',
                            run_at => $dtf->format_datetime( DateTime->now() )
                        });
 
-my $steps = $storage->prepare_due_processes();
-is( $steps->count() , 2 , "Ok two steps to do");
-while( my $step = $steps->next() ){
+my @steps = $storage->prepare_due_processes();
+is( scalar( @steps ) , 2 , "Ok two steps to do");
+foreach my $step ( @steps ){
     # While we are doing things, any other process would see zero things to do
-    is( $storage->prepare_due_processes()->count() , 0 , "Preparing steps again whilst they are running give zero steps");
+    is( scalar( $storage->prepare_due_processes() ) , 0 , "Preparing steps again whilst they are running give zero steps");
 }
 
 

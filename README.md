@@ -10,6 +10,13 @@ An example of such a process would be: "After an order has been started, if more
 
 Such a process is usually a pain to implement and this is an attempt to provide a framework so it would make writing and testing such a process as easy as writing and testing a good old Class.
 
+# INCOMPATIBLE CHANGES
+
+From 0.013
+
+The API of Storage has changed between 0.012 and 0.013. If you've written your own storage, you
+will want to manage that. If not, then don't worry about it.
+
 # CONCEPTS
 
 ## Process

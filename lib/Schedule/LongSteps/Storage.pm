@@ -22,7 +22,7 @@ sub _build_uuid{
 =head2 prepare_due_processes
 
 Mark the processes that are due to run as 'running' and
-returns an iterable object listing them.
+returns an array of stored processes.
 
 Users: Note that this is meant to be used by L<Schedule::LongSteps>, and not intended
 to be called directly.
