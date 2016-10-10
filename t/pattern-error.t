@@ -26,17 +26,20 @@ use Schedule::LongSteps;
 
     sub do_choose{
         my ($self) = @_;
-        die "SOMETHING HORRIBLE HAPPENED";
+        die "SOMETHING HORRIBLE HAPPENED" x 100;
     }
 }
 
 {
     my $captured_error;
     ok( my $long_steps = Schedule::LongSteps->new(
-        { on_error => sub{
+        {
+            error_limit => 123,
+            on_error => sub{
               my ( $process ) = @_;
               is( $process->status() , 'terminated' );
               like( $process->error()  , qr/SOMETHING HORRIBLE/ );
+              is( length( $process->error() ) , 123 );
               $captured_error = $process->error();
           } }) );
     {

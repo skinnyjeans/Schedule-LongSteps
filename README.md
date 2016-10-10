@@ -169,9 +169,12 @@ Use the property 'on\_error' on the Schedule::LongStep manager:
 
     my $longsteps = Schedule::LongStep->new({ storage => ..,
                                               on_error => sub{
-                                                my ( $stored_process ) = @_;
+                                                my ( $stored_process , $error ) = @_;
                                                 .. do stuff with: ..
-                                                $stored_process->error(), $stored_process->process_class(),
+                                                $error, # The original error. Not trimmed, and can be an object raised by
+                                                        # the process.
+                                                $stored_process->error(), # The stored error. A string that might be trimmed.
+                                                $stored_process->process_class(),
                                                 $stored_process->state(), etc...
                                               }
                                              });
@@ -279,7 +282,11 @@ Simply do in your step 'do\_last\_stuff' implementation:
 
 - on\_error
 
-    A callback called like $on\_error->( $stored\_process ). See COOKBOOK for an example
+    A callback called like $on\_error->( $stored\_process , $error ). See COOKBOOK for an example
+
+- error\_limit
+
+    Maximum size of error message to log and store. Defaults to 2000 characters.
 
 # METHODS
 

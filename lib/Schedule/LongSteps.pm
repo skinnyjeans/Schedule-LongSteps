@@ -180,9 +180,12 @@ Use the property 'on_error' on the Schedule::LongStep manager:
 
   my $longsteps = Schedule::LongStep->new({ storage => ..,
                                             on_error => sub{
-                                              my ( $stored_process ) = @_;
+                                              my ( $stored_process , $error ) = @_;
                                               .. do stuff with: ..
-                                              $stored_process->error(), $stored_process->process_class(),
+                                              $error, # The original error. Not trimmed, and can be an object raised by
+                                                      # the process.
+                                              $stored_process->error(), # The stored error. A string that might be trimmed.
+                                              $stored_process->process_class(),
                                               $stored_process->state(), etc...
                                             }
                                            });
@@ -295,7 +298,11 @@ An instance of a subclass of L<Schedule::LongSteps::Storage>. See SYNOPSIS.
 
 =item on_error
 
-A callback called like $on_error->( $stored_process ). See COOKBOOK for an example
+A callback called like $on_error->( $stored_process , $error ). See COOKBOOK for an example
+
+=item error_limit
+
+Maximum size of error message to log and store. Defaults to 2000 characters.
 
 =back
 
@@ -355,6 +362,8 @@ has 'storage' => ( is => 'ro', isa => 'Schedule::LongSteps::Storage', lazy_build
 
 has 'on_error' => ( is => 'ro', isa => 'CodeRef', default => sub{ return sub{}; } );
 
+has 'error_limit' => ( is => 'ro', isa => 'Int' , default => 2000 );
+
 sub _build_storage{
     my ($self) = @_;
     $log->warn("No storage specified. Will use Memory storage");
@@ -384,7 +393,14 @@ sub run_due_processes{
 
             $process->$process_method();
         };
-        if( my $err = $@ ){
+        if( my $original_err = $@ ){
+
+            # Stringify the error, just in case its an object.
+            my $err = $original_err.'';
+            if( length( $err ) > $self->error_limit() ){
+                $log->warn("Error too long. Trimming to ".$self->error_limit());
+                $err = substr( $err , 0 , $self->error_limit() );
+            }
             $log->error("Error running process ".$stored_process->process_class().':'.$stored_process->id().' :'.$err);
             $stored_process->update({
                 status => 'terminated',
@@ -392,11 +408,13 @@ sub run_due_processes{
                 run_at => undef,
                 run_id => undef,
             });
-            eval{ $self->on_error()->( $stored_process ); };
+
+            eval{ $self->on_error()->( $stored_process , $original_err ); };
             if( my $on_error_error = $@ ){
                 warn("Error handler triggered an error: $on_error_error");
                 $log->critical("Error handler triggered an error: $on_error_error");
             }
+
             next;
         }
 
