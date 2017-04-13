@@ -1,5 +1,7 @@
 package Schedule::LongSteps::Storage::AutoDBIx::Schema::Result::LongstepProcess;
 
+use strict;
+use warnings;
 use base qw/DBIx::Class::Core/;
 __PACKAGE__->table('schedule_longsteps_process');
 __PACKAGE__->load_components(qw/InflateColumn::DateTime InflateColumn::Serializer/);

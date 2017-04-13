@@ -1,4 +1,7 @@
 package Schedule::LongSteps::Storage::AutoDBIx::Schema;
+
+use strict;
+use warnings;
 use base qw/DBIx::Class::Schema/;
 
 __PACKAGE__->load_classes({ 'Schedule::LongSteps::Storage::AutoDBIx::Schema::Result' => [ 'LongstepProcess' ] });
