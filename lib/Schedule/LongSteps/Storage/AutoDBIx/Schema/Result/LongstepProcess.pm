@@ -23,6 +23,11 @@ __PACKAGE__->add_columns(
           serializer_class => 'JSON',
           is_nullable => 0,
       },
+    audit_log =>
+        { data_type => "text",
+          serializer_class => 'JSON',
+          is_nullable => 0,
+      },
     error =>
         { data_type => "text", is_nullable => 1 }
     );

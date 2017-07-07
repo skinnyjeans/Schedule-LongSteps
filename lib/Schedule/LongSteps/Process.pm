@@ -2,6 +2,7 @@ package Schedule::LongSteps::Process;
 
 use Moose;
 use Log::Any qw/$log/;
+use DateTime;
 
 has 'longsteps' => ( is => 'ro', isa => 'Schedule::LongSteps' , required => 1);
 
@@ -23,6 +24,18 @@ of this process.
 sub state{
     my ($self) = @_;
     return $self->stored_process()->state();
+}
+
+=head2 audit_log
+
+Returns the current audit log (a ArrayRef JSONable data structure)
+for the process.
+
+=cut
+
+sub audit_log{
+    my ($self) = @_;
+    return $self->stored_process()->audit_log();
 }
 
 =head2 new_step

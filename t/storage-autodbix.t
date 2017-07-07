@@ -44,6 +44,7 @@ my $dtf = $storage->schema->storage()->datetime_parser();
     $dbh->begin_work();
     ok( my $process_id = $storage->create_process({ process_class => 'Blabla',
                                                     state => {},
+                                                    audit_log => [],
                                                     what => 'whatever',
                                                     run_at => $dtf->format_datetime( DateTime->now() )
                                                 })->id(), "Ok got ID");
@@ -63,12 +64,14 @@ my $dtf = $storage->schema->storage()->datetime_parser();
 my $process = $storage->create_process({ process_class => 'Blabla',
                                          what => 'whatever',
                                          state => {},
+                                         audit_log => [],
                                          run_at => $dtf->format_datetime( DateTime->now() )
                                      });
 ok( $storage->find_process($process->id()));
 $storage->create_process({ process_class => 'Blabla',
                            what => 'whatever',
                            state => {},
+                           audit_log => [],
                            run_at => $dtf->format_datetime( DateTime->now() )
                        });
 

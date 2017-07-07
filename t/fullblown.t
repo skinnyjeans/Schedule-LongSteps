@@ -83,6 +83,11 @@ my $test_mysql = Test::mysqld->new(my_cnf => {
               serializer_class => 'JSON',
               is_nullable => 0,
           },
+        audit_log =>
+            { data_type => "text",
+              serializer_class => 'JSON',
+              is_nullable => 0,
+          },
         error =>
             { data_type => "text", is_nullable => 1 }
         );
@@ -301,10 +306,18 @@ foreach my $long_steps ( $long_steps_dbixclass , $long_steps_auto ){
         $cancer_process->discard_changes();
         is( $cancer_process->status() , 'terminated' );
         is( $cancer_process->state()->{have_treatment}, 0 );
+        my $cancer_process_audit_log = $family_process->audit_log();
+        is( scalar @{$cancer_process_audit_log}, 1);
+        like( $cancer_process_audit_log->[0], qr/Instantiated/);
 
         $family_process->discard_changes();
         is( $family_process->status() , 'terminated' );
         is( $family_process->state()->{have_treatment}, 1 );
+        use Data::Dumper;
+        my $family_process_audit_log = $family_process->audit_log();
+        is( scalar @{$family_process_audit_log}, 11);
+        like( $family_process_audit_log->[0], qr/Instantiated/);
+        like( $family_process_audit_log->[-1], qr/Finished do_prescribe/);
     };
 }
 
