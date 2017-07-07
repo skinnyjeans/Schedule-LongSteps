@@ -125,6 +125,11 @@ Please index this so it is fast to select rows with a matching run_id
 A Reasonably long TEXT field (or JSON field in supporting databases) capable of holding
 a JSON dump of pure Perl data. NOT NULL.
 
+=item audit_log
+
+A Reasonably long TEXT field (or JSON field in supporting databases) capable of holding
+a JSON dump of pure Perl array. NOT NULL.
+
 You HAVE to implement inflating and deflating yourself. See L<DBIx::Class::InflateColumn::Serializer::JSON>
 or similar techniques.
 

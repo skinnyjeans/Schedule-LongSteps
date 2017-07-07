@@ -355,6 +355,7 @@ See L<perlartistic>
 
 use Class::Load;
 use Log::Any qw/$log/;
+use DateTime;
 
 use Schedule::LongSteps::Storage::Memory;
 
@@ -384,12 +385,14 @@ sub run_due_processes{
     my $process_count = 0;
     foreach  my $stored_process ( @stored_processes ){
         my $process_method = $stored_process->what();
+        my $audit_log = $stored_process->audit_log();
 
         $process_count++;
 
         my $new_step_properties = eval{
             Class::Load::load_class($stored_process->process_class());
             my $process = $stored_process->process_class()->new({ longsteps => $self, stored_process => $stored_process, %{$context} });
+            push @{$audit_log}, sprintf("%s: Starting %s", DateTime->now()->iso8601(), $process_method);
 
             $process->$process_method();
         };
@@ -399,9 +402,11 @@ sub run_due_processes{
             my $err = $original_err.'';
             if( length( $err ) > $self->error_limit() ){
                 $log->warn("Error too long. Trimming to ".$self->error_limit());
+
                 $err = substr( $err , 0 , $self->error_limit() );
             }
             $log->error("Error running process ".$stored_process->process_class().':'.$stored_process->id().' :'.$err);
+            push @{$audit_log}, sprintf("%s: Terminated on %s", DateTime->now()->iso8601(),$process_method);
             $stored_process->update({
                 status => 'terminated',
                 error => $err,
@@ -418,10 +423,12 @@ sub run_due_processes{
             next;
         }
 
+        push @{$audit_log}, sprintf("%s: Finished %s", DateTime->now()->iso8601(), $process_method);
         $stored_process->update({
             status => 'paused',
             run_at => undef,
             run_id => undef,
+            audit_log => $audit_log,
             %{$new_step_properties}
         });
     }
@@ -445,6 +452,7 @@ sub instantiate_process{
         process_class => $process_class,
         status => 'pending',
         state => $init_state,
+        audit_log => [(DateTime->now()->iso8601().': Instantiated')],
         %{$step_props}
     });
     return $stored_process;

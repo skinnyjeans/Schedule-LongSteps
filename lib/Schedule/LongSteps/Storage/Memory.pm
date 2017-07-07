@@ -98,6 +98,7 @@ has 'what' => ( is => 'rw' ,  isa => 'Str', required => 1);
 has 'run_at' => ( is => 'rw', isa => 'Maybe[DateTime]', default => sub{ undef; } );
 has 'run_id' => ( is => 'rw', isa => 'Maybe[Str]', default => sub{ undef; } );
 has 'state' => ( is => 'rw', default => sub{ {}; });
+has 'audit_log' => ( is => 'rw', default => sub{ []; });
 has 'error' => ( is => 'rw', isa => 'Maybe[Str]', default => sub{ undef; } );
 
 sub update{
