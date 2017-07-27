@@ -395,8 +395,6 @@ sub run_due_processes{
         $process_count++;
 
         my $new_step_properties = eval{
-            # Class::Load::load_class($stored_process->process_class());
-            # my $process = $stored_process->process_class()->new({ longsteps => $self, stored_process => $stored_process, %{$context} });
             my $process = $self->_load_process($stored_process,$context);
 
             $process->$process_method();
