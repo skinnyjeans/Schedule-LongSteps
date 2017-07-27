@@ -339,6 +339,13 @@ Usage:
 
 Shortcut to $self->storage->find_process( $pid );
 
+=head2 load_process
+
+Returns the loaded process for the required pid and opiotnal hash ref context.
+This is useful for unit testing, A blank context is used if not provided.
+
+    $self->load_process( $pid , $context );
+
 =head1 SEE ALSO
 
 L<BPM::Engine> A business Process engine based on XPDL, in Alpha version since 2012 (at this time of writing)
@@ -388,8 +395,9 @@ sub run_due_processes{
         $process_count++;
 
         my $new_step_properties = eval{
-            Class::Load::load_class($stored_process->process_class());
-            my $process = $stored_process->process_class()->new({ longsteps => $self, stored_process => $stored_process, %{$context} });
+            # Class::Load::load_class($stored_process->process_class());
+            # my $process = $stored_process->process_class()->new({ longsteps => $self, stored_process => $stored_process, %{$context} });
+            my $process = $self->_load_process($stored_process,$context);
 
             $process->$process_method();
         };
@@ -454,5 +462,44 @@ sub find_process{
     my ($self, $pid) = @_;
     return $self->storage()->find_process($pid);
 }
+
+sub load_process {
+    my ( $self, $pid, $context ) = @_;
+    $context ||= {};
+
+    my $loaded_process;
+    eval {
+        my $stored_process = $self->find_process($pid);
+        $loaded_process = $self->_load_process( $stored_process, $context );
+    };
+
+    if ($@) {
+        $log->critical("Failed to load the process: $@");
+    }
+
+    return $loaded_process;
+}
+
+
+# make sure you put this in an eval.
+sub _load_process {
+    my ( $self, $stored_process, $context ) = @_;
+    $context ||= {};
+
+    my $loaded_process;
+
+    Class::Load::load_class( $stored_process->process_class() );
+    $loaded_process = $stored_process->process_class()->new(
+        {
+            longsteps      => $self,
+            stored_process => $stored_process,
+            %{$context}
+        }
+    );
+
+    return $loaded_process;
+}
+
+
 
 __PACKAGE__->meta->make_immutable();

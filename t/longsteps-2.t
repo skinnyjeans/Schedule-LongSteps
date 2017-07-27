@@ -43,6 +43,18 @@ is_deeply( $step->state() , { beef => 'saussage' });
 ok( $long_steps->run_due_processes() );
 like( $fakestep->error() , qr/locate BladiBlabla\.pm/ );
 
+{
+    is( $long_steps->load_process( $fakestep->id() ),
+        undef, 'loaing a bad precess will return undef' );
+    ok( my $loaded_process = $long_steps->load_process( $step->id() ),
+        'can load a process' );
+    my $stored_process = $loaded_process->stored_process;
+    is( $step->id(),   $stored_process->id(),   'same process: id' );
+    is( $step->what(), $stored_process->what(), 'same process: what' );
+    is_deeply( $step->state(), $stored_process->state(), 'same process: state' );
+}
+
+
 # And check the step properties have been
 is_deeply( $step->state(), { some => 'new one' });
 is( $step->what(), 'do_last_stuff' );
