@@ -479,7 +479,9 @@ sub load_process {
 }
 
 
-# make sure you put this in an eval.
+# load_class may croak when trying to load a module you that is not in the INC
+# so to be safe make sure you put this in an eval, and handle the errors
+# appropriately
 sub _load_process {
     my ( $self, $stored_process, $context ) = @_;
     $context ||= {};
