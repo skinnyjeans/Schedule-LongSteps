@@ -367,6 +367,7 @@ See L<perlartistic>
 =cut
 
 use Class::Load;
+use DateTime;
 use Log::Any qw/$log/;
 
 use Schedule::LongSteps::Storage::Memory;
@@ -475,6 +476,52 @@ sub load_process {
     return unless $stored_process;
     return $self->_load_stored_process( $stored_process, $context );
 }
+
+sub revive {
+    my ( $self, $process_id, $revive_to ) = @_;
+
+    # find process
+    my $stored_process = eval { $self->find_process($process_id) };
+    if ($@) {
+        $log->critical("$process_id does not exist");
+        return;
+    }
+
+    # check to see if its allowed to be revived.
+    # has it stopped
+    if ( $stored_process->status() ne "terminated" ) {
+        $log->critical("$process_id does not have a status of 'terminated'");
+        return;
+    }
+
+    # load the process and check if process have the method to revive_to
+    # if revive $revive_to was not passed, used the function we failed on.
+    # and check that also, just in case we attempt to revive on a method
+    # that was previously removed.
+    $revive_to = $stored_process->what() unless $revive_to;
+    my $loaded_process = eval { $self->_load_process($stored_process) };
+
+    if ($@) {
+        $log->critical("Failed to load the process: $@");
+        return;
+    }
+
+    unless ($loaded_process->can($revive_to)) {
+        $log->critical("Unable revive $process_id to $revive_to");
+        return;
+    }
+
+    # remove the error if present
+    $stored_process->error(undef) if $stored_process->error();
+    # change the status to paused
+    $stored_process->status("paused");
+    # reschedual the process
+    $stored_process->run_at(DateTime->now());
+    $stored_process->update();
+    # profit.
+    return 1
+}
+
 
 
 # load_class may croak when trying to load a module you that is not in the INC
