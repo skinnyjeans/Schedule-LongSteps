@@ -352,6 +352,13 @@ and will be used to load the process, a blank context is used if not provided.
     }
 
 
+=head2 revive
+
+Revive a longstep process, to a given method, if no method is given then the process
+will revive on the failed process.
+
+    $self->revive( $pid , $method_to_revive_to );
+
 =head1 SEE ALSO
 
 L<BPM::Engine> A business Process engine based on XPDL, in Alpha version since 2012 (at this time of writing)
@@ -509,6 +516,17 @@ sub revive {
     unless ($loaded_process->can($revive_to)) {
         $log->critical("Unable revive $process_id to $revive_to");
         return;
+    }
+
+    my $revive_method = "revive_$revive_to";
+    if ( $loaded_process->can($revive_method) ) {
+        $log->info("Running $revive_method function");
+        my $state = eval {$loaded_process->$revive_method()};
+        if ($@) {
+            $log->critical("Failed to revive the process using $revive_method: $@");
+            return;
+        }
+        $stored_process->state($state) if $state;
     }
 
     # remove the error if present
