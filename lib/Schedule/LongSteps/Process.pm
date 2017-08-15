@@ -121,7 +121,7 @@ sub wait_processes{
 
 =head2 revival_methods
 
-asdasdasd
+Returns an array-ref of revive methods associated with the process.
 
 =cut
 

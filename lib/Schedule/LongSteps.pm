@@ -354,8 +354,8 @@ and will be used to load the process, a blank context is used if not provided.
 
 =head2 revive
 
-Revive a longstep process, to a given method, if no method is given then the process
-will revive on the failed process.
+Revive a longstep process to a given step within a Longstep process. If no method is given then the process
+will revive the failed process or its revive associated revive method.
 
     $self->revive( $pid , $method_to_revive_to );
 
