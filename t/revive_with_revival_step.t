@@ -78,7 +78,11 @@ like( $process->error(), qr(something went wrong), 'something did go wrong' );
 eval{ $long_steps->revive( $process->id(), 'do_the_hoff' ) };
 like( $@, qr(Unable revive \d+ to do_the_hoff), 'revive to an incorrect function' );
 
-is( $long_steps->revive( $process->id() ), 1, 'Process was revived' );
+is( $long_steps->revive( $process->id() ), 1, 'Process was revived, but will still fail' );
+ok( $long_steps->run_due_processes(), 'run the revival step' );
+like( $process->error(), qr(something went wrong), 'Although rivived this is still broken ' );
+
+is( $long_steps->revive( $process->id(), 'revive_do_break_stuff' ), 1, 'Process was revived with its revival step' );
 is( $process->error(),  undef,    'revived process error was undef' );
 is( $process->status(), "paused", 'revived process status is paused' );
 
