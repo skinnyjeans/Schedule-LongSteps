@@ -488,59 +488,46 @@ sub revive {
     my ( $self, $process_id, $revive_to ) = @_;
 
     # find process
-    my $stored_process = eval { $self->find_process($process_id) };
-    if ($@) {
-        $log->critical("$process_id does not exist");
-        return;
-    }
+    my $stored_process = $self->find_process($process_id);
+    confess "There is no $process_id to revive" unless $stored_process;
 
     # check to see if its allowed to be revived.
     # has it stopped
-    if ( $stored_process->status() ne "terminated" ) {
-        $log->critical("$process_id does not have a status of 'terminated'");
-        return;
-    }
+    confess("$process_id does not have a status of 'terminated'") if ( $stored_process->status() ne "terminated" );
 
     # load the process and check if process have the method to revive_to
     # if revive $revive_to was not passed, used the function we failed on.
     # and check that also, just in case we attempt to revive on a method
     # that was previously removed.
+    my $loaded_process = $self->_load_stored_process($stored_process);
+
     $revive_to = $stored_process->what() unless $revive_to;
-    my $loaded_process = eval { $self->_load_process($stored_process) };
-
-    if ($@) {
-        $log->critical("Failed to load the process: $@");
-        return;
+    unless ( $loaded_process->can($revive_to) ) {
+        confess "Unable revive $process_id to $revive_to";
     }
 
-    unless ($loaded_process->can($revive_to)) {
-        $log->critical("Unable revive $process_id to $revive_to");
-        return;
-    }
-
+    # set the next step, if there is a revive_$revive_to,this takes precidence
     my $revive_method = "revive_$revive_to";
     if ( $loaded_process->can($revive_method) ) {
-        $log->info("Running $revive_method function");
-        my $state = eval {$loaded_process->$revive_method()};
-        if ($@) {
-            $log->critical("Failed to revive the process using $revive_method: $@");
-            return;
-        }
-        $stored_process->state($state) if $state;
+        $revive_to = $revive_method
     }
 
-    # remove the error if present
-    $stored_process->error(undef) if $stored_process->error();
+    # set the revivie point
+    $stored_process->what($revive_to);
+
+    # remove the any error
+    $stored_process->error(undef);
+
     # change the status to paused
     $stored_process->status("paused");
+
     # reschedual the process
     $stored_process->run_at(DateTime->now());
     $stored_process->update();
+
     # profit.
-    return 1
+    return 1;
 }
-
-
 
 # load_class may croak when trying to load a module you that is not in the INC
 # so to be safe make sure you put this in an eval, and handle the errors

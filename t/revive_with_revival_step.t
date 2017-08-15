@@ -32,7 +32,14 @@ my $do_break_stuff_fails = 1;
 
     sub revive_do_break_stuff {
         my ($self) = @_;
-        return { %{ $self->state() }, n_tries => 0 }
+        return $self->new_step(
+            {
+                what   => 'do_break_stuff',
+                run_at => DateTime->now(),
+                state =>
+                  { %{ $self->state() }, n_tries => 0 }
+            }
+        );
     }
 
 
@@ -67,14 +74,15 @@ ok( $long_steps->run_due_processes(), 'run do_break_stuff' );
 is( $process->what(), 'do_break_stuff' );
 like( $process->error(), qr(something went wrong), 'something did go wrong' );
 
-# this should return undef, as there is no do_the_hoff
-is( $long_steps->revive( $process->id(), 'do_the_hoff' ),
-    undef, 'revive to an incorrect function' );
+# this should die, as there is no do_the_hoff
+eval{ $long_steps->revive( $process->id(), 'do_the_hoff' ) };
+like( $@, qr(Unable revive \d+ to do_the_hoff), 'revive to an incorrect function' );
 
 is( $long_steps->revive( $process->id() ), 1, 'Process was revived' );
 is( $process->error(),  undef,    'revived process error was undef' );
 is( $process->status(), "paused", 'revived process status is paused' );
 
+ok( $long_steps->run_due_processes(), 'run the revival step' );
 ok( $long_steps->run_due_processes(), 'run the revived step' );
 
 # And check the step properties have been
