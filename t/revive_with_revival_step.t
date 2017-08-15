@@ -94,4 +94,8 @@ is( $process->run_at(), undef );
 # Check no due step have run again
 ok( !$long_steps->run_due_processes() );
 
+
+my $revival_methods = $long_steps->load_process( $process->id() )->revival_methods();
+is(scalar(@$revival_methods),1, 'there is only one revival method');
+is($revival_methods->[0],'revive_do_break_stuff', 'the only revival methodis revive_do_break_stuff');
 done_testing();

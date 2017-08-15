@@ -118,5 +118,19 @@ sub wait_processes{
     return $self->new_step({ run_at => DateTime->now() });
 }
 
+
+=head2 revival_methods
+
+asdasdasd
+
+=cut
+
+sub revival_methods {
+    my ($self) = @_;
+    my @revival_methods = map {$_->name}grep {$_->name =~ /^revive_/} $self->meta->get_all_methods;
+    return \@revival_methods;
+}
+
+
 __PACKAGE__->meta->make_immutable();
 
