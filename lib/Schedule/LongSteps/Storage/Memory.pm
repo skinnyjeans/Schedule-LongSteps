@@ -63,7 +63,8 @@ sub find_process{
     my ($self, $pid) = @_;
     $log->trace("Looking up process ID=$pid");
     my ( $match ) = grep{ $_->id() == $pid } @{$self->processes()};
-    $log->trace("Found: $match");
+    my $log_message = $match ? "Found: $match" : "Could not find a process for $pid";
+    $log->trace($log_message);
     return $match;
 }
 
