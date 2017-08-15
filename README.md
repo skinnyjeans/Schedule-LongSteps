@@ -321,6 +321,18 @@ Usage:
 
 Shortcut to $self->storage->find\_process( $pid );
 
+## load\_process
+
+Returns a loaded process for a given pid, or undef if there is no process
+associated with the PID.
+
+An optional hash ref context can also be passed in
+and will be used to load the process, a blank context is used if not provided.
+
+    if( my $loaded_process = $self->load_process( $pid , $context ) ){
+       ...
+    }
+
 # SEE ALSO
 
 [BPM::Engine](https://metacpan.org/pod/BPM::Engine) A business Process engine based on XPDL, in Alpha version since 2012 (at this time of writing)
