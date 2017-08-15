@@ -333,6 +333,20 @@ and will be used to load the process, a blank context is used if not provided.
        ...
     }
 
+## revive
+
+Revive a longstep process to a given step within a Longstep process.
+If no method is given then the process will revive on the failed process step.
+If you need to modify the state before reviving the longstep process, it is
+recommended to have a revive step ("revive\_do\_broken\_step") which modifies
+the state as needed and returns a next\_step to continue the process.
+
+This method will confess on any issues.
+
+    eval {
+        $self->revive( $pid , $method_to_revive_to );
+    };
+
 # SEE ALSO
 
 [BPM::Engine](https://metacpan.org/pod/BPM::Engine) A business Process engine based on XPDL, in Alpha version since 2012 (at this time of writing)
