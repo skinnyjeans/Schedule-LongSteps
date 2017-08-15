@@ -487,12 +487,9 @@ sub load_process {
 sub revive {
     my ( $self, $process_id, $revive_to ) = @_;
 
-    # find process
     my $stored_process = $self->find_process($process_id);
     confess "There is no $process_id to revive" unless $stored_process;
 
-    # check to see if its allowed to be revived.
-    # has it stopped
     confess("$process_id does not have a status of 'terminated'") if ( $stored_process->status() ne "terminated" );
 
     # load the process and check if process have the method to revive_to
@@ -502,30 +499,17 @@ sub revive {
     my $loaded_process = $self->_load_stored_process($stored_process);
 
     $revive_to = $stored_process->what() unless $revive_to;
-    unless ( $loaded_process->can($revive_to) ) {
-        confess "Unable revive $process_id to $revive_to";
-    }
 
-    # set the next step, if there is a revive_$revive_to,this takes precidence
-    my $revive_method = "revive_$revive_to";
-    if ( $loaded_process->can($revive_method) ) {
-        $revive_to = $revive_method
-    }
+    # check to see if we able to revive
+    confess "Unable revive $process_id to $revive_to" unless $loaded_process->can($revive_to);
 
-    # set the revivie point
+    # Set the process up to be revived.
     $stored_process->what($revive_to);
-
-    # remove the any error
     $stored_process->error(undef);
-
-    # change the status to paused
     $stored_process->status("paused");
-
-    # reschedual the process
     $stored_process->run_at(DateTime->now());
     $stored_process->update();
 
-    # profit.
     return 1;
 }
 
