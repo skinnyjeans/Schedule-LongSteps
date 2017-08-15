@@ -71,4 +71,6 @@ ok( ! $step->run_at() );
 
 ok( ! $long_steps->run_due_processes() );
 
+is($long_steps->load_process( 1234567890 ), undef, 'load_process returns undef if not found');
+
 done_testing();

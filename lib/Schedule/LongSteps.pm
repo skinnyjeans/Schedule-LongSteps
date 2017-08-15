@@ -341,8 +341,11 @@ Shortcut to $self->storage->find_process( $pid );
 
 =head2 load_process
 
-Returns the loaded process for the required pid and optional hash ref context.
-This is useful for unit testing, A blank context is used if not provided.
+Returns a loaded process for a given pid, or undef if there is no process
+associated with the PID. An optional hash ref context can also be passed in
+and will be used to load the process, a blank context is used if not provided.
+
+This may throw an error if a process is not found or fails to load and should be handled accordingly.
 
     my $loaded_process;
     eval {
@@ -473,6 +476,7 @@ sub load_process {
     $context ||= {};
 
     my $stored_process = $self->find_process($pid);
+    return unless $stored_process;
     return $self->_load_stored_process( $stored_process, $context );
 }
 
