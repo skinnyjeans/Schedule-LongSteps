@@ -351,13 +351,19 @@ and will be used to load the process, a blank context is used if not provided.
        ...
     }
 
-
 =head2 revive
 
-Revive a longstep process to a given step within a Longstep process. If no method is given then the process
-will revive the failed process or its revive associated revive method.
+Revive a longstep process to a given step within a Longstep process.
+If no method is given then the process will revive on the failed process step.
+If you need to modify the state before reviving the longstep process, it is
+recommended to have a revive step ("revive_do_broken_step") which modifies
+the state as needed and returns a next_step to continue the process.
 
-    $self->revive( $pid , $method_to_revive_to );
+This method will confess on any issues.
+
+    eval {
+        $self->revive( $pid , $method_to_revive_to );
+    };
 
 =head1 SEE ALSO
 
