@@ -44,7 +44,10 @@ ok( $long_steps->run_due_processes() );
 like( $fakestep->error() , qr/locate BladiBlabla\.pm/ );
 
 {
-    throws_ok { $long_steps->load_process( $fakestep->id() )}, 'loaing a bad precess will return undef' );
+    eval {
+        $long_steps->load_process( $fakestep->id() );
+    };
+    like($@, qr(Can\'t locate BladiBlabla.pm), 'load procress throws an error');
     ok( my $loaded_process = $long_steps->load_process( $step->id() ),
         'can load a process' );
     my $stored_process = $loaded_process->stored_process;
