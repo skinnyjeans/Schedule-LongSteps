@@ -484,18 +484,14 @@ sub _load_stored_process {
     my ( $self, $stored_process, $context ) = @_;
     $context ||= {};
 
-    my $loaded_process;
-
     Class::Load::load_class( $stored_process->process_class() );
-    $loaded_process = $stored_process->process_class()->new(
+    return $stored_process->process_class()->new(
         {
             longsteps      => $self,
             stored_process => $stored_process,
             %{$context}
         }
     );
-
-    return $loaded_process;
 }
 
 
