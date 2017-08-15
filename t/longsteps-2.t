@@ -44,8 +44,7 @@ ok( $long_steps->run_due_processes() );
 like( $fakestep->error() , qr/locate BladiBlabla\.pm/ );
 
 {
-    is( $long_steps->load_process( $fakestep->id() ),
-        undef, 'loaing a bad precess will return undef' );
+    throws_ok { $long_steps->load_process( $fakestep->id() )}, 'loaing a bad precess will return undef' );
     ok( my $loaded_process = $long_steps->load_process( $step->id() ),
         'can load a process' );
     my $stored_process = $loaded_process->stored_process;

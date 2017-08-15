@@ -341,10 +341,17 @@ Shortcut to $self->storage->find_process( $pid );
 
 =head2 load_process
 
-Returns the loaded process for the required pid and opiotnal hash ref context.
+Returns the loaded process for the required pid and optional hash ref context.
 This is useful for unit testing, A blank context is used if not provided.
 
-    $self->load_process( $pid , $context );
+    my $loaded_process;
+    eval {
+        $loaded_process = $self->load_process( $pid , $context );
+    };
+    if ( $@ ) {
+        # handle the error
+    }
+
 
 =head1 SEE ALSO
 
@@ -465,17 +472,8 @@ sub load_process {
     my ( $self, $pid, $context ) = @_;
     $context ||= {};
 
-    my $loaded_process;
-    eval {
-        my $stored_process = $self->find_process($pid);
-        $loaded_process = $self->_load_process( $stored_process, $context );
-    };
-
-    if ($@) {
-        $log->critical("Failed to load the process: $@");
-    }
-
-    return $loaded_process;
+    my $stored_process = $self->find_process($pid);
+    return $self->_load_process( $stored_process, $context );
 }
 
 
