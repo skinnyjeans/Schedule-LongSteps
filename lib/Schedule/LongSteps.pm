@@ -402,7 +402,7 @@ sub run_due_processes{
         $process_count++;
 
         my $new_step_properties = eval{
-            my $process = $self->_load_process($stored_process,$context);
+            my $process = $self->_load_stored_process($stored_process,$context);
 
             $process->$process_method();
         };
@@ -473,14 +473,14 @@ sub load_process {
     $context ||= {};
 
     my $stored_process = $self->find_process($pid);
-    return $self->_load_process( $stored_process, $context );
+    return $self->_load_stored_process( $stored_process, $context );
 }
 
 
 # load_class may croak when trying to load a module you that is not in the INC
 # so to be safe make sure you put this in an eval, and handle the errors
 # appropriately
-sub _load_process {
+sub _load_stored_process {
     my ( $self, $stored_process, $context ) = @_;
     $context ||= {};
 
