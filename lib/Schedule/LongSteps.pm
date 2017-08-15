@@ -351,6 +351,19 @@ and will be used to load the process, a blank context is used if not provided.
        ...
     }
 
+=head2 revive
+
+Revive a longstep process to a given step within a Longstep process.
+If no method is given then the process will revive on the failed process step.
+If you need to modify the state before reviving the longstep process, it is
+recommended to have a revive step ("revive_do_broken_step") which modifies
+the state as needed and returns a next_step to continue the process.
+
+This method will confess on any issues.
+
+    eval {
+        $self->revive( $pid , $method_to_revive_to );
+    };
 
 =head1 SEE ALSO
 
@@ -367,6 +380,7 @@ See L<perlartistic>
 =cut
 
 use Class::Load;
+use DateTime;
 use Log::Any qw/$log/;
 
 use Schedule::LongSteps::Storage::Memory;
@@ -476,6 +490,34 @@ sub load_process {
     return $self->_load_stored_process( $stored_process, $context );
 }
 
+sub revive {
+    my ( $self, $process_id, $revive_to ) = @_;
+
+    my $stored_process = $self->find_process($process_id);
+    confess "There is no $process_id to revive" unless $stored_process;
+
+    confess("$process_id does not have a status of 'terminated'") if ( $stored_process->status() ne "terminated" );
+
+    # load the process and check if process have the method to revive_to
+    # if revive $revive_to was not passed, used the function we failed on.
+    # and check that also, just in case we attempt to revive on a method
+    # that was previously removed.
+    my $loaded_process = $self->_load_stored_process($stored_process);
+
+    $revive_to = $stored_process->what() unless $revive_to;
+
+    # check to see if we able to revive
+    confess "Unable revive $process_id to $revive_to" unless $loaded_process->can($revive_to);
+
+    # Set the process up to be revived.
+    $stored_process->what($revive_to);
+    $stored_process->error(undef);
+    $stored_process->status("paused");
+    $stored_process->run_at(DateTime->now());
+    $stored_process->update();
+
+    return 1;
+}
 
 # load_class may croak when trying to load a module you that is not in the INC
 # so to be safe make sure you put this in an eval, and handle the errors
