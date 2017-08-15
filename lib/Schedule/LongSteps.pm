@@ -339,6 +339,23 @@ Usage:
 
 Shortcut to $self->storage->find_process( $pid );
 
+=head2 load_process
+
+Returns a loaded process for a given pid, or undef if there is no process
+associated with the PID. An optional hash ref context can also be passed in
+and will be used to load the process, a blank context is used if not provided.
+
+This may throw an error if a process is not found or fails to load and should be handled accordingly.
+
+    my $loaded_process;
+    eval {
+        $loaded_process = $self->load_process( $pid , $context );
+    };
+    if ( $@ ) {
+        # handle the error
+    }
+
+
 =head1 SEE ALSO
 
 L<BPM::Engine> A business Process engine based on XPDL, in Alpha version since 2012 (at this time of writing)
@@ -388,8 +405,7 @@ sub run_due_processes{
         $process_count++;
 
         my $new_step_properties = eval{
-            Class::Load::load_class($stored_process->process_class());
-            my $process = $stored_process->process_class()->new({ longsteps => $self, stored_process => $stored_process, %{$context} });
+            my $process = $self->_load_stored_process($stored_process,$context);
 
             $process->$process_method();
         };
@@ -454,5 +470,34 @@ sub find_process{
     my ($self, $pid) = @_;
     return $self->storage()->find_process($pid);
 }
+
+sub load_process {
+    my ( $self, $pid, $context ) = @_;
+    $context ||= {};
+
+    my $stored_process = $self->find_process($pid);
+    return unless $stored_process;
+    return $self->_load_stored_process( $stored_process, $context );
+}
+
+
+# load_class may croak when trying to load a module you that is not in the INC
+# so to be safe make sure you put this in an eval, and handle the errors
+# appropriately
+sub _load_stored_process {
+    my ( $self, $stored_process, $context ) = @_;
+    $context ||= {};
+
+    Class::Load::load_class( $stored_process->process_class() );
+    return $stored_process->process_class()->new(
+        {
+            longsteps      => $self,
+            stored_process => $stored_process,
+            %{$context}
+        }
+    );
+}
+
+
 
 __PACKAGE__->meta->make_immutable();
