@@ -358,11 +358,14 @@ If no method is given then the process will revive on the failed process step.
 If you need to modify the state before reviving the longstep process, it is
 recommended to have a revive step ("revive_do_broken_step") which modifies
 the state as needed and returns a next_step to continue the process.
+In the process of reviving a process, the process has to be built which may
+require a context to be passed if no context is passed in, then an empty
+context is used.
 
 This method will confess on any issues.
 
     eval {
-        $self->revive( $pid , $method_to_revive_to );
+        $self->revive( $pid , $method_to_revive_to, $context );
     };
 
 =head1 SEE ALSO
@@ -491,7 +494,8 @@ sub load_process {
 }
 
 sub revive {
-    my ( $self, $process_id, $revive_to ) = @_;
+    my ( $self, $process_id, $revive_to, $context ) = @_;
+    $context ||= {};
 
     my $stored_process = $self->find_process($process_id);
     confess "There is no $process_id to revive" unless $stored_process;
@@ -502,7 +506,7 @@ sub revive {
     # if revive $revive_to was not passed, used the function we failed on.
     # and check that also, just in case we attempt to revive on a method
     # that was previously removed.
-    my $loaded_process = $self->_load_stored_process($stored_process);
+    my $loaded_process = $self->_load_stored_process($stored_process, $context);
 
     $revive_to = $stored_process->what() unless $revive_to;
 
