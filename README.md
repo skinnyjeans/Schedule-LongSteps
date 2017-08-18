@@ -336,7 +336,12 @@ and will be used to load the process, a blank context is used if not provided.
 ## revive
 
 Revive a longstep process to a given step within a Longstep process.
-If no method is given then the process will revive on the failed process step.
+
+A context is required when the reviving process contains required attributes
+and when setting a step to reviving step. If no step is given then the process
+will revive on the failed process step, when setting a step that doesn't
+require a context, use an empty hashref '{}'.
+
 If you need to modify the state before reviving the longstep process, it is
 recommended to have a revive step ("revive\_do\_broken\_step") which modifies
 the state as needed and returns a next\_step to continue the process.
@@ -344,7 +349,7 @@ the state as needed and returns a next\_step to continue the process.
 This method will confess on any issues.
 
     eval {
-        $self->revive( $pid , $method_to_revive_to );
+        $self->revive( $pid, $context, $method_to_revive_to );
     };
 
 # SEE ALSO
