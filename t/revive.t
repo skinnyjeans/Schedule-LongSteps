@@ -48,7 +48,7 @@ ok( $long_steps->run_due_processes() );
 like( $process->error(), qr(something went wrong), 'something did go wrong' );
 
 # this should die, as there is no do_the_hoff
-eval{ $long_steps->revive( $process->id(), 'do_the_hoff' ) };
+eval{ $long_steps->revive( $process->id(), {}, 'do_the_hoff' ) };
 like( $@, qr(Unable revive \d+ to do_the_hoff), 'revive to an incorrect function' );
 
 $do_break_stuff_fails = 0;
