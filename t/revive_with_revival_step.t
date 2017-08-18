@@ -74,13 +74,15 @@ ok( $long_steps->run_due_processes(), 'run do_break_stuff' );
 is( $process->what(), 'do_break_stuff' );
 like( $process->error(), qr(something went wrong), 'something did go wrong' );
 
-# this should die, as there is no do_the_hoff
-eval{ $long_steps->revive( $process->id(), 'do_the_hoff' ) };
-like( $@, qr(Unable revive \d+ to do_the_hoff), 'revive to an incorrect function' );
-
+# revive as is and is still broken
 is( $long_steps->revive( $process->id() ), 1, 'Process was revived, but will still fail' );
 ok( $long_steps->run_due_processes(), 'run the revival step' );
 like( $process->error(), qr(something went wrong), 'Although rivived this is still broken ' );
+
+# revive to a non existent method, do_the_hoff
+ok( $long_steps->revive( $process->id(), 'do_the_hoff' ) );
+ok( $long_steps->run_due_processes(), 'run the revival step' );
+like( $process->error(), qr(locate object method \"do_the_hoff"), 'revive to an incorrect function' );
 
 is( $long_steps->revive( $process->id(), 'revive_do_break_stuff' ), 1, 'Process was revived with its revival step' );
 is( $process->error(),  undef,    'revived process error was undef' );
