@@ -8,3 +8,4 @@ requires 'Scope::Guard', '>= 0.21';
 
 test_requires 'Test::More';
 test_requires 'Test::MockDateTime';
+test_requires 'Class::Load';
