@@ -43,10 +43,10 @@ like( $storage->table_name() , qr/^testdeletethis_Schedule_LongSteps_Storage_Dyn
 is( $storage->table_status() , undef ,"Ok no table exists remotely");
 ok( $storage->vivify_table() , "Ok can vivify table");
 
-# ok( ! scalar( $storage->prepare_due_processes() ), "Ok zero due steps");
+ok( ! scalar( $storage->prepare_due_processes() ), "Ok zero due steps");
 
-# ok( my $process_id =  $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at =>  DateTime->now() })->id(), "Ok got ID");
-# ok( $storage->find_process($process_id) );
+ok( my $process_id =  $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at =>  DateTime->now() })->id(), "Ok got ID");
+ok( $storage->find_process($process_id) );
 
 # is( scalar( $storage->prepare_due_processes() ) , 1 );
 
@@ -60,6 +60,8 @@ ok( $storage->vivify_table() , "Ok can vivify table");
 #     ok(! scalar( $storage->prepare_due_processes()) , "Preparing steps again whilst they are running give zero steps");
 # }
 
-ok( $storage->destroy_table('I am very sure and I am not insane'), "Ok can destroy table");
 
-done_testing();
+END{
+    $storage->destroy_table('I am very sure and I am not insane');
+    done_testing();
+}

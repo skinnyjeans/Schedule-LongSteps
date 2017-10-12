@@ -123,13 +123,31 @@ sub vivify_table{
             # { AttributeName => 'process_class', AttributeType => 'S' },
             # { AttributeName => 'status', AttributeType => 'S' },
             # { AttributeName => 'what', AttributeType => 'S' },
-            # { AttributeName => 'run_at_day' , AttributeType => 'N' }, # Time in epoch / 86400 = epoch day
-            # { AttributeName => 'run_at', AttributeType => 'N' }, # Time in epoch of run_at
+            { AttributeName => 'run_at_day' , AttributeType => 'N' }, # int( Time in epoch / 86400 ) = epoch day
+            { AttributeName => 'run_at', AttributeType => 'N' }, # Time in epoch of run_at
+            # { AttributeName => 'run_id', AttributeType => 'S' }, # The current run_id
             # { AttributeName => 'state', AttributeType => 'B' },
             # { AttributeName => 'error', AttributeType => 'S' },
         ],
         KeySchema => [
             { AttributeName => 'id', KeyType => 'HASH' },
+        ],
+        GlobalSecondaryIndexes => [
+            {
+                IndexName => 'by_run_at_day',
+                KeySchema => [
+                    { AttributeName => 'run_at_day', KeyType => 'HASH' },
+                    { AttributeName => 'run_at', KeyType => 'RANGE' },
+                ],
+                Projection => {
+                    NonKeyAttributes => [ 'run_id' ],
+                    ProjectionType => 'INCLUDE'
+                },
+                ProvisionedThroughput => {
+                    ReadCapacityUnits => 2,
+                    WriteCapacityUnits => 2,
+                }
+            }
         ],
         ProvisionedThroughput => {
             ReadCapacityUnits => 2,
@@ -148,6 +166,11 @@ sub vivify_table{
     }
     $log->info("Table $table_name ACTIVE. All is fine");
     return $creation;
+}
+
+sub prepare_due_processes{
+    my ($self) = @_;
+    return ();
 }
 
 
