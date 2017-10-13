@@ -152,6 +152,7 @@ sub prepare_due_processes{
     my $dtf = $self->schema()->storage()->datetime_parser();
 
     my $uuid = $self->uuid()->create_str();
+    $log->info("Creating batch ID $uuid");
 
     # Move the due ones to a specific 'transient' running status
     # in a transaction that would prevent any other process

@@ -420,8 +420,8 @@ sub run_due_processes{
         $process_count++;
 
         my $new_step_properties = eval{
+            $log->info( "Will do $process_method on process ID=".$stored_process->id() );
             my $process = $self->_load_stored_process($stored_process,$context);
-
             $process->$process_method();
         };
         if( my $original_err = $@ ){
