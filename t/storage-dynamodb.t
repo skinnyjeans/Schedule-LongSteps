@@ -11,9 +11,13 @@ use Log::Any::Adapter qw/Stderr/;
 
 my @paws_class = ( 'Paws',
                    'Paws::Credential::Explicit',
-                   'Paws::Net::LWPCaller' );
+                   'Paws::Net::LWPCaller',
+                   'JSON',
+                   'MIME::Base64',
+                   'Compress::Zlib',
+               );
 
-join( '', map{ Class::Load::try_load_class( $_ ) ? 'yes' : '' } @paws_class ) eq 'yesyesyes'
+join( '', map{ Class::Load::try_load_class( $_ ) ? 'yes' : '' } @paws_class ) eq join('', map{ 'yes' } @paws_class )
     or plan skip_all => "Paws required to run these tests";
 
 $ENV{AWS_ACCESS_KEY} && $ENV{AWS_SECRET_KEY}
@@ -45,8 +49,27 @@ ok( $storage->vivify_table() , "Ok can vivify table");
 
 ok( ! scalar( $storage->prepare_due_processes() ), "Ok zero due steps");
 
-ok( my $process_id =  $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at =>  DateTime->now() })->id(), "Ok got ID");
-ok( $storage->find_process($process_id) );
+my $now = DateTime->now();
+
+{
+    ok( my $process_id =  $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => $now })->id(), "Ok got ID");
+    ok( my $process = $storage->find_process($process_id) );
+    is_deeply( $process->state() , {} );
+    is( $process->run_at().'' , $now.'' );
+}
+
+{
+    ok( my $process_id =  $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => undef, state => { foo => 'bar' } })->id(), "Ok got ID");
+    ok( my $process = $storage->find_process($process_id) );
+    is_deeply( $process->state() , { foo => 'bar' } );
+    is( $process->run_at() , undef );
+}
+
+{
+    ok( my $process_id =  $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => $now, state => { foo => 'bar' x 300_000 } })->id(), "Ok got ID");
+    ok( my $process = $storage->find_process($process_id) );
+    is_deeply( $process->state() , { foo => 'bar' x 300_000 } );
+}
 
 # is( scalar( $storage->prepare_due_processes() ) , 1 );
 
@@ -62,6 +85,8 @@ ok( $storage->find_process($process_id) );
 
 
 END{
-    $storage->destroy_table('I am very sure and I am not insane');
+    if( $storage->table_exists() ){
+        $storage->destroy_table('I am very sure and I am not insane');
+    }
     done_testing();
 }
