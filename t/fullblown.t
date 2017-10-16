@@ -264,7 +264,7 @@ push @longsteps, $long_steps_auto;
 
 my $dynamo_storage = undef;
 
-if( $ENV{AWS_ACCESS_KEY} && $ENV{AWS_SECRET_KEY} ){
+if( $ENV{DYNAMODB_LOCAL} ){
     my @to_load = qw/Paws
                      Paws::Credential::Explicit
                      Paws::Net::LWPCaller
@@ -274,8 +274,9 @@ if( $ENV{AWS_ACCESS_KEY} && $ENV{AWS_SECRET_KEY} ){
 
     my $dynamo_config = {
         region => 'eu-west-1',
-        access_key => $ENV{AWS_ACCESS_KEY},
-        secret_key => $ENV{AWS_SECRET_KEY},
+        endpoint => $ENV{DYNAMODB_LOCAL},
+        access_key => 'foo',
+        secret_key => 'bar',
     };
     my $credentials = Paws::Credential::Explicit->new($dynamo_config);
     my $caller = Paws::Net::LWPCaller->new();
@@ -292,6 +293,7 @@ if( $ENV{AWS_ACCESS_KEY} && $ENV{AWS_SECRET_KEY} ){
     my $long_steps_dynamo = Schedule::LongSteps->new({
         storage => $dynamo_storage
     });
+    diag("Will test DynamoDB (with DYNAMODB_LOCAL)");
     push @longsteps, $long_steps_dynamo;
 }
 

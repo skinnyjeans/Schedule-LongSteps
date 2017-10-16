@@ -157,6 +157,10 @@ to worry about creating a DBIx::Class model yourself.
 Persist processes in an existing L<DBIx::Class> schema. Nice if you want to have only one instance of Schema in your application and if
 don't mind writing your own resultset.
 
+=item L<Schedule::LongSteps::Storage::DynamoDB>
+
+Persist processes in a DynamoDB table in AWS.
+
 =back
 
 =head1 COOKBOOK
