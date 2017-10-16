@@ -19,24 +19,21 @@ my @paws_class = ( 'Paws',
 join( '', map{ Class::Load::try_load_class( $_ ) ? 'yes' : '' } @paws_class ) eq join('', map{ 'yes' } @paws_class )
     or plan skip_all => "Paws required to run these tests";
 
-$ENV{AWS_ACCESS_KEY} && $ENV{AWS_SECRET_KEY}
-    or plan skip_all => "Test requires AWS_ACCESS_KEY and AWS_SECRET_KEY";
-
+$ENV{DYNAMODB_LOCAL} or plan skip_all => "ENV DYNAMODB_LOCAL URL is required";
 
 my $dynamo_config = {
     region => 'eu-west-1',
-    access_key => $ENV{AWS_ACCESS_KEY},
-    secret_key => $ENV{AWS_SECRET_KEY},
+    endpoint => $ENV{DYNAMODB_LOCAL},
 };
 
 
-my $credentials = Paws::Credential::Explicit->new($dynamo_config);
 my $caller = Paws::Net::LWPCaller->new();
+my $credentials = Paws::Credential::Explicit->new({ access_key => 'foo', secret_key => 'bar' });
 
 my $dynamo_db = Paws->service(
     'DynamoDB',
-    credentials => $credentials,
     caller => $caller,
+    credentials => $credentials,
     max_attempts => 10,
     %{$dynamo_config}
 );
