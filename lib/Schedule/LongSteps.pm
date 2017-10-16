@@ -516,11 +516,17 @@ sub revive {
     confess "Unable revive $process_id to $revive_to" unless $loaded_process->can($revive_to);
 
     # Set the process up to be revived.
+    my $now = DateTime->now();
     $stored_process->what($revive_to);
     $stored_process->error(undef);
     $stored_process->status("paused");
-    $stored_process->run_at(DateTime->now());
-    $stored_process->update();
+    $stored_process->run_at( $now );
+    $stored_process->update({
+        what => $revive_to,
+        error => undef,
+        status => "paused",
+        run_at => $now
+    });
 
     return 1;
 }

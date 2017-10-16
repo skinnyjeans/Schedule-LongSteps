@@ -10,6 +10,7 @@ use Compress::Zlib;
 use JSON;
 
 my $EPOCH_MAX = 2_147_483_647;
+my $SECONDS_IN_DAY = 86_400;
 
 =head1 NAME
 
@@ -126,13 +127,13 @@ sub vivify_table{
             ## as AttributeDefinition must only defined attributes
             ## used in the KeySchema
             # { AttributeName => 'process_class', AttributeType => 'S' },
-            # { AttributeName => 'status', AttributeType => 'S' },
+            # { AttributeName => 'mstatus', AttributeType => 'S' },
             # { AttributeName => 'what', AttributeType => 'S' },
             { AttributeName => 'run_at_day' , AttributeType => 'N' }, # int( Time in epoch / 86400 ) = epoch day
             { AttributeName => 'run_at', AttributeType => 'N' }, # Time in epoch of run_at
             # { AttributeName => 'run_id', AttributeType => 'S' }, # The current run_id
-            # { AttributeName => 'state', AttributeType => 'S' },
-            # { AttributeName => 'error', AttributeType => 'S' },
+            # { AttributeName => 'mstate', AttributeType => 'S' },
+            # { AttributeName => 'merror', AttributeType => 'S' },
         ],
         KeySchema => [
             { AttributeName => 'id', KeyType => 'HASH' },
@@ -173,12 +174,95 @@ sub vivify_table{
     return $creation;
 }
 
+=head2 prepare_due_processes
+
+See L<Schedule::LongSteps::Storage>
+
+=cut
+
 sub prepare_due_processes{
-    my ($self) = @_;
-    return ();
+    my ($self, $options ) = @_;
+
+    $options ||= {};
+
+
+    my $dt = DateTime->now();
+    my $now = $dt->epoch();
+
+    # warn "NOW IS $dt. EPOCH IS $now";
+
+    my $run_at_day = int( $now / $SECONDS_IN_DAY );
+
+    my @found_items = ();
+    my $query_output;
+    do{
+        # Query the by_run_at_day index
+        $query_output = $self->dynamo_db()->Query(
+            TableName => $self->table_name(),
+            IndexName => 'by_run_at_day',
+            ConsistentRead => 0, # Consistent read are not supported on secondary indices.
+            ExpressionAttributeValues => {
+                ":run_at_day" => { "N" => $run_at_day },
+                ":now" => { "N" => $now },
+                ":null" => { "S" => 'NULL' },
+            },
+            Limit => 20,
+            KeyConditionExpression => 'run_at_day = :run_at_day AND run_at <= :now',
+            FilterExpression => 'run_id = :null',
+            ProjectionExpression => 'id',
+        );
+
+        # Next we are going to look at the day before
+        $run_at_day--;
+
+        $log->info("Got ".$query_output->Count()." results back for run_at_day = $run_at_day");
+        push @found_items , @{ $query_output->Items() };
+
+    } while( $query_output->Count() );
+
+    # Of all the items found, we need to inject a run_id in those who dont have any yet
+    # and return only those ones.
+    my $run_id = $self->uuid()->create_str();
+    $log->info("Will set run_id=$run_id on due items");
+    my @locked_processes;
+
+    ( $options->{concurrent_fiddle} || sub{} )->();
+
+    foreach my $item ( @found_items ){
+        my $id = $item->Map()->{id}->S();
+        my $update_output = eval{
+            $self->dynamo_db()->UpdateItem(
+                TableName => $self->table_name(),
+                ExpressionAttributeValues => {
+                    ":run_id" => { S => $run_id },
+                    ":null" => { "S" => 'NULL' },
+                },
+                Key => { id => { S => $id } },
+                UpdateExpression => 'SET run_id = :run_id',
+                ConditionExpression => 'run_id = :null',
+                ReturnValues => 'ALL_NEW',
+            );
+        };
+        if( my $err = $@ ){
+            # This error is expected in case of race condition.
+            if( $err =~ m/^The conditional request failed/ ){
+                $log->info("INVALID ITEM Item ".$id." has not been updated with our run_id. It was taken by another run id");
+                next;
+            }
+            # This is a non-expected error.
+            confess( $err );
+        }
+
+        my $attributes = $update_output->Attributes()->Map();
+        my $new_run_id = $attributes->{run_id}->S();
+        $log->info("VALID ITEM Updated item ".$id." with our run_id=".$run_id);
+        push @locked_processes, $self->_process_from_attrmap( $update_output->Attributes() );
+    }
+
+    return @locked_processes;
 }
 
-=head2
+=head2 create_process
 
 See L<Schedule::LongSteps::Storage>
 
@@ -195,11 +279,17 @@ sub create_process{
     return $o;
 }
 
+=head2 find_process
+
+See L<Schedule::LongSteps::Storage>
+
+=cut
+
 sub find_process{
     my ($self, $pid) = @_;
     my $dynamo_item = $self->dynamo_db()->GetItem(
         TableName => $self->table_name(),
-        ConsistentRead => 1, # Very important. We are doing OLTP with this thing.
+        ConsistentRead => 1,
         Key => {
             id => { S => $pid }
         }
@@ -207,7 +297,7 @@ sub find_process{
     unless( $dynamo_item ){
         return undef;
     }
-    return $self->_document_from_attrmap( $dynamo_item );
+    return $self->_process_from_attrmap( $dynamo_item );
 }
 
 sub _decode_state{
@@ -221,7 +311,7 @@ sub _decode_state{
     return JSON::from_json( Compress::Zlib::memGunzip( MIME::Base64::decode_base64( $dynamo_state ) ) );
 }
 
-sub _document_from_attrmap{
+sub _process_from_attrmap{
     my ($self, $dynamoItem) = @_;
     my $map = $dynamoItem->Map();
 
@@ -235,8 +325,8 @@ sub _document_from_attrmap{
     if( $run_id eq 'NULL' ){
         $run_id = undef;
     }
-    my $state = $self->_decode_state( $map->{state}->S() );
-    my $error = $map->{error}->S();
+    my $state = $self->_decode_state( $map->{mstate}->S() );
+    my $error = $map->{merror}->S();
     if( $error eq 'NULL' ){
         $error = undef;
     }
@@ -245,7 +335,7 @@ sub _document_from_attrmap{
         storage => $self,
         id => $map->{id}->S(),
         process_class => $map->{process_class}->S(),
-        status => $map->{status}->S(),
+        status => $map->{mstatus}->S(),
         what => $map->{what}->S(),
         run_at => $run_at,
         run_id => $run_id,
@@ -301,20 +391,90 @@ use JSON;
 use MIME::Base64;
 use Compress::Zlib;
 use DateTime;
+use Data::Dumper;
 
 # my $EPOCH_MAX = 2_147_483_647;
-my $SECONDS_IN_DAY = 86_400;
+# my $SECONDS_IN_DAY = 86_400;
 
 has 'storage' => ( is => 'ro', isa => 'Schedule::LongSteps::Storage::DynamoDB', required => 1 );
-has 'id' => ( is => 'ro', isa => 'Str', required => 1 );
+has 'id' =>      ( is => 'ro', isa => 'Str', required => 1 );
 
 has 'process_class' => ( is => 'rw', isa => 'Str', required => 1); # rw only for test. Should not changed ever.
-has 'status' => ( is => 'rw', isa => 'Str', default => 'pending' );
-has 'what' => ( is => 'rw' ,  isa => 'Str', required => 1);
-has 'run_at' => ( is => 'rw', isa => 'Maybe[DateTime]', default => sub{ undef; } );
-has 'run_id' => ( is => 'rw', isa => 'Maybe[Str]', default => sub{ undef; } );
-has 'state' => ( is => 'rw', default => sub{ {}; });
-has 'error' => ( is => 'rw', isa => 'Maybe[Str]', default => sub{ undef; } );
+has 'status' =>        ( is => 'rw', isa => 'Str', default => 'pending' );
+has 'what' =>          ( is => 'rw' ,  isa => 'Str', required => 1);
+has 'run_at' =>        ( is => 'rw', isa => 'Maybe[DateTime]', default => sub{ undef; } );
+has 'run_id' =>        ( is => 'rw', isa => 'Maybe[Str]', default => sub{ undef; } );
+has 'state' =>         ( is => 'rw', default => sub{ {}; });
+has 'error' =>         ( is => 'rw', isa => 'Maybe[Str]', default => sub{ undef; } );
+
+# Local to Dynamo Items.
+my $MEMORY_TO_DYNAMO = {
+    id => [ 'id' ],
+    process_class => [ 'process_class' ],
+    status => [ 'mstatus' ], # My status
+    what => [ 'what' ],
+    run_at => [ 'run_at', 'run_at_day' ],
+    run_id => [ 'run_id' ],
+    state => [ 'mstate' ],  # My state
+    error => [ 'merror' ],  # My error
+};
+
+
+=head2 update
+
+Updates via upsert.
+
+=cut
+
+sub update{
+    my ($self, $attributes) = @_;
+
+    foreach my $key ( keys %$attributes ){
+        $self->$key( $attributes->{$key} );
+    }
+    my $dynamo_item = $self->_to_dynamo_item();
+    my $to_update = {};
+    # Only keep attributes that were updated.
+    foreach my $attr ( keys %$attributes ){
+        foreach my $dynamo_attr ( @{ $MEMORY_TO_DYNAMO->{$attr} } ){
+            $to_update->{$dynamo_attr} = $dynamo_item->{$dynamo_attr};
+        }
+    }
+
+    $log->info("Updating Item ID = ".$self->id()." with ".Dumper( $to_update ) );
+
+    my @update_keys = keys %$to_update;
+    my $expression_attributes = {
+        map { ':'.$_ => $to_update->{$_} } @update_keys
+    };
+    # $log->debug("ExpressionAttributes = ".Dumper( $expression_attributes ) );
+    my $update_expression = 'SET '.join(', ', map { $_.' = :'.$_  } @update_keys );
+    # $log->debug("UpdateExpression = ".$update_expression);
+
+    $self->storage()->dynamo_db()->UpdateItem(
+        TableName => $self->storage()->table_name(),
+        Key => { id => { S => $self->id() } },
+        ExpressionAttributeValues => $expression_attributes,
+        UpdateExpression => $update_expression
+    );
+
+    return $self;
+}
+
+=head2 discard_changes
+
+Updates what is updatable.
+
+=cut
+
+sub discard_changes{
+    my ($self) = @_;
+    my $fresh_one = $self->storage()->find_process( $self->id() );
+    foreach my $rw_attr ( qw/process_class status what run_at run_id state error/ ){
+        $self->$rw_attr( $fresh_one->$rw_attr() );
+    }
+    return $self;
+}
 
 sub _insert{
     my ($self) = @_;
@@ -369,13 +529,13 @@ sub _to_dynamo_item{
     return {
         id => { S => $self->id() },
         process_class => { S => $self->process_class() },
-        status => { S => $self->status() },
+        mstatus => { S => $self->status() },
         what => { S => $self->what() },
         run_at_day => { N => $run_at_epoch_day },
         run_at => { N => $run_at_epoch },
         run_id => { S => $self->run_id() || 'NULL' },
-        state => { S => $self->_state_encode() },
-        error => { S => $self->_error_trim() || 'NULL' },
+        mstate => { S => $self->_state_encode() },
+        merror => { S => $self->_error_trim() || 'NULL' },
     }
 }
 

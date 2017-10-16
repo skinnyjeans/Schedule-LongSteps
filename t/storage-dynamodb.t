@@ -6,8 +6,7 @@ use Schedule::LongSteps::Storage::DynamoDB;
 use DateTime;
 use Class::Load;
 
-use Log::Any::Adapter qw/Stderr/;
-
+# use Log::Any::Adapter qw/Stderr/;
 
 my @paws_class = ( 'Paws',
                    'Paws::Credential::Explicit',
@@ -55,12 +54,18 @@ my $now = DateTime->now();
     ok( my $process_id =  $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => $now })->id(), "Ok got ID");
     ok( my $process = $storage->find_process($process_id) );
     is_deeply( $process->state() , {} );
+    ok( $process = $process->update({ state => { 'foo' => 'updated' } } ) );
+    $process = $storage->find_process($process_id);
     is( $process->run_at().'' , $now.'' );
+    is_deeply( $process->state() , { 'foo' => 'updated' });
 }
 
 {
     ok( my $process_id =  $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => undef, state => { foo => 'bar' } })->id(), "Ok got ID");
     ok( my $process = $storage->find_process($process_id) );
+    $process->update({ error => 'blabla' });
+    $process = $storage->find_process( $process_id );
+    is( $process->error() , 'blabla' );
     is_deeply( $process->state() , { foo => 'bar' } );
     is( $process->run_at() , undef );
 }
@@ -71,22 +76,37 @@ my $now = DateTime->now();
     is_deeply( $process->state() , { foo => 'bar' x 300_000 } );
 }
 
-# is( scalar( $storage->prepare_due_processes() ) , 1 );
+is( scalar( $storage->prepare_due_processes() ) , 2 );
 
-# $storage->create_process({ process_class => 'Blabla', process_id => $process_id, what => 'whatever', run_at =>  DateTime->now() });
-# $storage->create_process({ process_class => 'Blabla', process_id => $process_id, what => 'whatever', run_at =>  DateTime->now() });
+$storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at =>  DateTime->now() });
+$storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at =>  DateTime->now() });
+$storage->create_process({ process_class => 'Blabla', what => 'some_other_thing', run_at => DateTime->now() , id => 'PLEASE_FIDDLE_WITH_ME' });
 
-# my @steps = $storage->prepare_due_processes();
-# ok( scalar( @steps ), "Ok some steps to do");
-# foreach my $step ( @steps ){
-#     # While we are doing things, any other process would see zero things to do
-#     ok(! scalar( $storage->prepare_due_processes()) , "Preparing steps again whilst they are running give zero steps");
-# }
+my @steps = $storage->prepare_due_processes({ concurrent_fiddle => sub{
+                                                  $storage->dynamo_db()->UpdateItem(
+                                                      TableName => $storage->table_name(),
+                                                      Key => { id => { S => 'PLEASE_FIDDLE_WITH_ME' } },
+                                                      ExpressionAttributeValues => {
+                                                          ':run_id' => { S => 'FIDDLE_RUN_ID' },
+                                                      },
+                                                      UpdateExpression => 'SET run_id = :run_id'
+                                                  );
+                                              }
+                                          });
+
+is( scalar( @steps ) , 2, "Ok found 2 more to run");
+
+foreach my $step ( @steps ){
+    # While we are doing things, any other process would see zero things to do
+    ok(! scalar( $storage->prepare_due_processes()) , "Preparing steps again whilst they are running give zero steps");
+}
 
 
 END{
-    if( $storage->table_exists() ){
-        $storage->destroy_table('I am very sure and I am not insane');
+    if( $storage ){
+        if( $storage->table_exists() ){
+            $storage->destroy_table('I am very sure and I am not insane');
+        }
     }
     done_testing();
 }
