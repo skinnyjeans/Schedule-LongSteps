@@ -3,14 +3,15 @@ package Schedule::LongSteps::Storage::DynamoDB;
 use Moose;
 extends qw/Schedule::LongSteps::Storage/;
 
-use Log::Any qw/$log/;
-use Scalar::Util;
-use MIME::Base64;
 use Compress::Zlib;
-use JSON;
+use DateTime::Format::ISO8601;
+use DateTime;
+use JSON qw//;
+use Log::Any qw/$log/;
+use MIME::Base64;
+use Scalar::Util;
 
-my $EPOCH_MAX = 2_147_483_647;
-my $SECONDS_IN_DAY = 86_400;
+my $TIME_MAX = '9999-12-31T23:59:59.999Z';
 
 =head1 NAME
 
@@ -129,8 +130,8 @@ sub vivify_table{
             # { AttributeName => 'process_class', AttributeType => 'S' },
             # { AttributeName => 'mstatus', AttributeType => 'S' },
             # { AttributeName => 'what', AttributeType => 'S' },
-            { AttributeName => 'run_at_day' , AttributeType => 'N' }, # int( Time in epoch / 86400 ) = epoch day
-            { AttributeName => 'run_at', AttributeType => 'N' }, # Time in epoch of run_at
+            { AttributeName => 'run_at_day' , AttributeType => 'S' }, # ISO8601 YYYY-MM-DD
+            { AttributeName => 'run_at', AttributeType => 'S' }, # ISO8601 YYYY-MM-DDTHH:MM:SS.000
             # { AttributeName => 'run_id', AttributeType => 'S' }, # The current run_id
             # { AttributeName => 'mstate', AttributeType => 'S' },
             # { AttributeName => 'merror', AttributeType => 'S' },
@@ -185,13 +186,8 @@ sub prepare_due_processes{
 
     $options ||= {};
 
-
-    my $dt = DateTime->now();
-    my $now = $dt->epoch();
-
-    # warn "NOW IS $dt. EPOCH IS $now";
-
-    my $run_at_day = int( $now / $SECONDS_IN_DAY );
+    my $now = DateTime->now();
+    my $run_at_day = $now->clone()->truncate( to => 'day' );
 
     my @found_items = ();
     my $query_output;
@@ -202,8 +198,8 @@ sub prepare_due_processes{
             IndexName => 'by_run_at_day',
             ConsistentRead => 0, # Consistent read are not supported on secondary indices.
             ExpressionAttributeValues => {
-                ":run_at_day" => { "N" => $run_at_day },
-                ":now" => { "N" => $now },
+                ":run_at_day" => { "S" => substr( $run_at_day->iso8601() , 0 , 10 ) },
+                ":now" => { "S" => $now->iso8601().'Z' },
                 ":null" => { "S" => 'NULL' },
             },
             Limit => 20,
@@ -213,7 +209,7 @@ sub prepare_due_processes{
         );
 
         # Next we are going to look at the day before
-        $run_at_day--;
+        $run_at_day->subtract( days => 1 )->truncate( to => 'day' );
 
         $log->info("Got ".$query_output->Count()." results back for run_at_day = $run_at_day");
         push @found_items , @{ $query_output->Items() };
@@ -300,7 +296,7 @@ sub find_process{
     return $self->_process_from_attrmap( $dynamo_item );
 }
 
-sub _decode_state{
+sub _state_decode{
     my ($self, $dynamo_state) = @_;
     if( $dynamo_state =~ /^{/ ){
         # Assume JSON
@@ -315,17 +311,17 @@ sub _process_from_attrmap{
     my ($self, $dynamoItem) = @_;
     my $map = $dynamoItem->Map();
 
-    my $run_at = $map->{run_at}->N();
-    if( $run_at == $EPOCH_MAX ){
+    my $run_at = $map->{run_at}->S();
+    if( $run_at eq $TIME_MAX ){
         $run_at = undef;
     }else{
-        $run_at = DateTime->from_epoch( epoch => $run_at );
+        $run_at = DateTime::Format::ISO8601->parse_datetime( $run_at );
     }
     my $run_id = $map->{run_id}->S();
     if( $run_id eq 'NULL' ){
         $run_id = undef;
     }
-    my $state = $self->_decode_state( $map->{mstate}->S() );
+    my $state = $self->_state_decode( $map->{mstate}->S() );
     my $error = $map->{merror}->S();
     if( $error eq 'NULL' ){
         $error = undef;
@@ -386,15 +382,13 @@ package Schedule::LongSteps::Storage::DynamoDB::Process;
 
 use Moose;
 
-use Log::Any qw/$log/;
-use JSON;
-use MIME::Base64;
 use Compress::Zlib;
-use DateTime;
 use Data::Dumper;
-
-# my $EPOCH_MAX = 2_147_483_647;
-# my $SECONDS_IN_DAY = 86_400;
+use DateTime::Format::ISO8601;
+use DateTime;
+use JSON qw//;
+use Log::Any qw/$log/;
+use MIME::Base64;
 
 has 'storage' => ( is => 'ro', isa => 'Schedule::LongSteps::Storage::DynamoDB', required => 1 );
 has 'id' =>      ( is => 'ro', isa => 'Str', required => 1 );
@@ -406,6 +400,8 @@ has 'run_at' =>        ( is => 'rw', isa => 'Maybe[DateTime]', default => sub{ u
 has 'run_id' =>        ( is => 'rw', isa => 'Maybe[Str]', default => sub{ undef; } );
 has 'state' =>         ( is => 'rw', default => sub{ {}; });
 has 'error' =>         ( is => 'rw', isa => 'Maybe[Str]', default => sub{ undef; } );
+
+my $MAX_DYNAMO_ITEM_SIZE = 350_000;
 
 # Local to Dynamo Items.
 my $MEMORY_TO_DYNAMO = {
@@ -494,7 +490,7 @@ sub _state_encode{
         $self->state(),
         { ascii => 1 }
     );
-    unless( length( $state_json ) > 350_000 ){
+    unless( length( $state_json ) > $MAX_DYNAMO_ITEM_SIZE ){
         $log->debug("Encoded state is ".substr( $state_json, 0 , 2000 ));
         return $state_json;
     }
@@ -502,7 +498,7 @@ sub _state_encode{
     $log->debug("State JSON is over 350KB, compressing");
     my $state_b64zjs = MIME::Base64::encode_base64(
         Compress::Zlib::memGzip( $state_json ) );
-    if( length( $state_b64zjs ) > 350_000 ){
+    if( length( $state_b64zjs ) > $MAX_DYNAMO_ITEM_SIZE ){
         confess("Compressed state is too large (over 350000 bytes)");
     }
     $log->debug("Encoded state is ".substr( $state_b64zjs , 0, 1000 ) .'...' );
@@ -519,11 +515,11 @@ sub _error_trim{
 
 sub _to_dynamo_item{
     my ($self) = @_;
-    my $run_at_epoch = $EPOCH_MAX;
+    my $run_at_str = $TIME_MAX;
     if( my $run_at = $self->run_at() ){
-        $run_at_epoch = $run_at->epoch();
+        $run_at_str = $run_at->iso8601().'Z';
     }
-    my $run_at_epoch_day = int( $run_at_epoch / $SECONDS_IN_DAY );
+    my $run_at_str_day = substr( $run_at_str, 0, 10 );
 
 
     return {
@@ -531,8 +527,8 @@ sub _to_dynamo_item{
         process_class => { S => $self->process_class() },
         mstatus => { S => $self->status() },
         what => { S => $self->what() },
-        run_at_day => { N => $run_at_epoch_day },
-        run_at => { N => $run_at_epoch },
+        run_at_day => { S => $run_at_str_day },
+        run_at => { S => $run_at_str },
         run_id => { S => $self->run_id() || 'NULL' },
         mstate => { S => $self->_state_encode() },
         merror => { S => $self->_error_trim() || 'NULL' },

@@ -8,6 +8,9 @@ use Class::Load;
 
 # use Log::Any::Adapter qw/Stderr/;
 
+
+$ENV{DYNAMODB_LOCAL} or plan skip_all => "ENV DYNAMODB_LOCAL URL is required";
+
 my @paws_class = ( 'Paws',
                    'Paws::Credential::Explicit',
                    'Paws::Net::LWPCaller',
@@ -18,8 +21,6 @@ my @paws_class = ( 'Paws',
 
 join( '', map{ Class::Load::try_load_class( $_ ) ? 'yes' : '' } @paws_class ) eq join('', map{ 'yes' } @paws_class )
     or plan skip_all => "Paws required to run these tests";
-
-$ENV{DYNAMODB_LOCAL} or plan skip_all => "ENV DYNAMODB_LOCAL URL is required";
 
 my $dynamo_config = {
     region => 'eu-west-1',
