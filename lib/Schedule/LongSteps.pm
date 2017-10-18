@@ -159,7 +159,7 @@ don't mind writing your own resultset.
 
 =item L<Schedule::LongSteps::Storage::DynamoDB>
 
-Persist processes in a DynamoDB table in AWS.
+Persist processes in a DynamoDB table in AWS. Please consider this Alpha. Give it a go and report any issue!
 
 =back
 
