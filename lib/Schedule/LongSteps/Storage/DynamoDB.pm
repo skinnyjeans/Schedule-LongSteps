@@ -200,11 +200,10 @@ sub prepare_due_processes{
             ExpressionAttributeValues => {
                 ":run_at_day" => { "S" => substr( $run_at_day->iso8601() , 0 , 10 ) },
                 ":now" => { "S" => $now->iso8601().'Z' },
-                ":null" => { "S" => 'NULL' },
             },
             Limit => 20,
             KeyConditionExpression => 'run_at_day = :run_at_day AND run_at <= :now',
-            FilterExpression => 'run_id = :null',
+            FilterExpression => 'attribute_not_exists( run_id )',
             ProjectionExpression => 'id',
         );
 
@@ -231,11 +230,10 @@ sub prepare_due_processes{
                 TableName => $self->table_name(),
                 ExpressionAttributeValues => {
                     ":run_id" => { S => $run_id },
-                    ":null" => { "S" => 'NULL' },
                 },
                 Key => { id => { S => $id } },
                 UpdateExpression => 'SET run_id = :run_id',
-                ConditionExpression => 'run_id = :null',
+                ConditionExpression => 'attribute_not_exists( run_id )',
                 ReturnValues => 'ALL_NEW',
             );
         };
@@ -311,21 +309,11 @@ sub _process_from_attrmap{
     my ($self, $dynamoItem) = @_;
     my $map = $dynamoItem->Map();
 
-    my $run_at = $map->{run_at}->S();
-    if( $run_at eq $TIME_MAX ){
-        $run_at = undef;
-    }else{
-        $run_at = DateTime::Format::ISO8601->parse_datetime( $run_at );
-    }
-    my $run_id = $map->{run_id}->S();
-    if( $run_id eq 'NULL' ){
-        $run_id = undef;
-    }
+    my $run_at = exists( $map->{run_at} ) ? DateTime::Format::ISO8601->parse_datetime( $map->{run_at}->S() ) : undef;
+    my $run_id = exists( $map->{run_id} ) ? $map->{run_id}->S() : undef;
+
     my $state = $self->_state_decode( $map->{mstate}->S() );
-    my $error = $map->{merror}->S();
-    if( $error eq 'NULL' ){
-        $error = undef;
-    }
+    my $error = exists( $map->{merror} ) ? $map->{merror}->S() : undef;
 
     return Schedule::LongSteps::Storage::DynamoDB::Process->new({
         storage => $self,
@@ -430,10 +418,15 @@ sub update{
     }
     my $dynamo_item = $self->_to_dynamo_item();
     my $to_update = {};
+    my @to_remove = ();
     # Only keep attributes that were updated.
     foreach my $attr ( keys %$attributes ){
-        foreach my $dynamo_attr ( @{ $MEMORY_TO_DYNAMO->{$attr} } ){
-            $to_update->{$dynamo_attr} = $dynamo_item->{$dynamo_attr};
+        if( defined ( $attributes->{$attr} ) ){
+            foreach my $dynamo_attr ( @{ $MEMORY_TO_DYNAMO->{$attr} } ){
+                $to_update->{$dynamo_attr} = $dynamo_item->{$dynamo_attr};
+            }
+        }else{
+            push @to_remove , @{ $MEMORY_TO_DYNAMO->{$attr} };
         }
     }
 
@@ -443,14 +436,25 @@ sub update{
     my $expression_attributes = {
         map { ':'.$_ => $to_update->{$_} } @update_keys
     };
-    # $log->debug("ExpressionAttributes = ".Dumper( $expression_attributes ) );
-    my $update_expression = 'SET '.join(', ', map { $_.' = :'.$_  } @update_keys );
-    # $log->debug("UpdateExpression = ".$update_expression);
+    $log->debug("ExpressionAttributes = ".Dumper( $expression_attributes ) );
+    my $update_expression = '';
+    if( @update_keys ){
+        $update_expression .= ' SET '.join(', ', map { $_.' = :'.$_  } @update_keys );
+    }
+    if( @to_remove ){
+        $update_expression .= ' REMOVE '.join(', ' , @to_remove );
+    }
+
+    $log->debug("UpdateExpression = ".$update_expression);
+    unless( $update_expression ){
+        $log->warn("Nothing to update");
+        return $self;
+    }
 
     $self->storage()->dynamo_db()->UpdateItem(
         TableName => $self->storage()->table_name(),
         Key => { id => { S => $self->id() } },
-        ExpressionAttributeValues => $expression_attributes,
+        ( ( keys %$expression_attributes ) ? ( ExpressionAttributeValues => $expression_attributes ) : () ),
         UpdateExpression => $update_expression
     );
 
@@ -515,11 +519,11 @@ sub _error_trim{
 
 sub _to_dynamo_item{
     my ($self) = @_;
-    my $run_at_str = $TIME_MAX;
+    my $run_at_str = undef;
     if( my $run_at = $self->run_at() ){
         $run_at_str = $run_at->iso8601().'Z';
     }
-    my $run_at_str_day = substr( $run_at_str, 0, 10 );
+    my $run_at_str_day = $run_at_str ? substr( $run_at_str, 0, 10 ) : undef;
 
 
     return {
@@ -527,11 +531,11 @@ sub _to_dynamo_item{
         process_class => { S => $self->process_class() },
         mstatus => { S => $self->status() },
         what => { S => $self->what() },
-        run_at_day => { S => $run_at_str_day },
-        run_at => { S => $run_at_str },
-        run_id => { S => $self->run_id() || 'NULL' },
+        ( $run_at_str_day ? ( run_at_day => { S => $run_at_str_day } ) : () ),
+        ( $run_at_str ? ( run_at => { S => $run_at_str } ) : () ),
+        ( $self->run_id() ? ( run_id => { S => $self->run_id() } ) : () ),
         mstate => { S => $self->_state_encode() },
-        merror => { S => $self->_error_trim() || 'NULL' },
+        ( $self->_error_trim() ? ( merror => { S => $self->_error_trim() } ) : () ),
     }
 }
 

@@ -6,7 +6,7 @@ use Schedule::LongSteps::Storage::DynamoDB;
 use DateTime;
 use Class::Load;
 
-# use Log::Any::Adapter qw/Stderr/;
+use Log::Any::Adapter qw/Stderr/;
 
 
 $ENV{DYNAMODB_LOCAL} or plan skip_all => "ENV DYNAMODB_LOCAL URL is required";
@@ -65,8 +65,12 @@ my $now = DateTime->now();
     $process = $storage->find_process( $process_id );
     is( $process->error() , 'blabla' );
     is_deeply( $process->state() , { foo => 'bar' } );
+    $process->update( { error => undef } );
+    $process = $storage->find_process( $process_id );
+    is( $process->error() , undef );
     is( $process->run_at() , undef );
 }
+
 
 {
     ok( my $process_id =  $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => $now, state => { foo => 'bar' x 300_000 } })->id(), "Ok got ID");
@@ -76,28 +80,28 @@ my $now = DateTime->now();
 
 is( scalar( $storage->prepare_due_processes() ) , 2 );
 
-$storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at =>  DateTime->now() });
-$storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at =>  DateTime->now() });
-$storage->create_process({ process_class => 'Blabla', what => 'some_other_thing', run_at => DateTime->now() , id => 'PLEASE_FIDDLE_WITH_ME' });
+# $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at =>  DateTime->now() });
+# $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at =>  DateTime->now() });
+# $storage->create_process({ process_class => 'Blabla', what => 'some_other_thing', run_at => DateTime->now() , id => 'PLEASE_FIDDLE_WITH_ME' });
 
-my @steps = $storage->prepare_due_processes({ concurrent_fiddle => sub{
-                                                  $storage->dynamo_db()->UpdateItem(
-                                                      TableName => $storage->table_name(),
-                                                      Key => { id => { S => 'PLEASE_FIDDLE_WITH_ME' } },
-                                                      ExpressionAttributeValues => {
-                                                          ':run_id' => { S => 'FIDDLE_RUN_ID' },
-                                                      },
-                                                      UpdateExpression => 'SET run_id = :run_id'
-                                                  );
-                                              }
-                                          });
+# my @steps = $storage->prepare_due_processes({ concurrent_fiddle => sub{
+#                                                   $storage->dynamo_db()->UpdateItem(
+#                                                       TableName => $storage->table_name(),
+#                                                       Key => { id => { S => 'PLEASE_FIDDLE_WITH_ME' } },
+#                                                       ExpressionAttributeValues => {
+#                                                           ':run_id' => { S => 'FIDDLE_RUN_ID' },
+#                                                       },
+#                                                       UpdateExpression => 'SET run_id = :run_id'
+#                                                   );
+#                                               }
+#                                           });
 
-is( scalar( @steps ) , 2, "Ok found 2 more to run");
+# is( scalar( @steps ) , 2, "Ok found 2 more to run");
 
-foreach my $step ( @steps ){
-    # While we are doing things, any other process would see zero things to do
-    ok(! scalar( $storage->prepare_due_processes()) , "Preparing steps again whilst they are running give zero steps");
-}
+# foreach my $step ( @steps ){
+#     # While we are doing things, any other process would see zero things to do
+#     ok(! scalar( $storage->prepare_due_processes()) , "Preparing steps again whilst they are running give zero steps");
+# }
 
 
 END{
