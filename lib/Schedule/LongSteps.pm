@@ -8,7 +8,10 @@ use Moose;
 
 Schedule::LongSteps - Manage long term processes over arbitrary large spans of time.
 
+
 =head1 ABSTRACT
+
+=for html <a href="https://travis-ci.org/skinnyjeans/Schedule-LongSteps"><img src="https://travis-ci.org/skinnyjeans/Schedule-LongSteps.svg?branch=dynamo"></a>
 
 This attempts to solve the problem of defining and running a set of potentially conditional steps accross an arbitrary long timespan.
 
