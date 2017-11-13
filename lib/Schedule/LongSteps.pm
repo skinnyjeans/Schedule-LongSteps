@@ -440,7 +440,7 @@ sub run_due_processes{
                 $err = substr( $err , 0 , $self->error_limit() );
             }
             $log->error("Error running process ".$stored_process->process_class().':'.$stored_process->id().' :'.$err);
-            $stored_process->update({
+            $self->storage()->update_process( $stored_process, {
                 status => 'terminated',
                 error => $err,
                 run_at => undef,
@@ -456,7 +456,7 @@ sub run_due_processes{
             next;
         }
 
-        $stored_process->update({
+        $self->storage()->update_process( $stored_process, {
             status => 'paused',
             run_at => undef,
             run_id => undef,
@@ -528,7 +528,7 @@ sub revive {
     $stored_process->error(undef);
     $stored_process->status("paused");
     $stored_process->run_at( $now );
-    $stored_process->update({
+    $self->storage()->update_process( $stored_process, {
         what => $revive_to,
         error => undef,
         status => "paused",
