@@ -64,4 +64,20 @@ sub find_process{
 }
 
 
+=head2 update_process
+
+Updates the given stored process (as returned by 'find_process')
+with the given properties.
+
+Usage:
+
+ $this->update_process( $process , { run_at => DateTime->now(), .. } );
+
+=cut
+
+sub update_process{
+    my ($self, $process, $properties) = @_;
+    $process->update( $properties );
+}
+
 __PACKAGE__->meta()->make_immutable();
