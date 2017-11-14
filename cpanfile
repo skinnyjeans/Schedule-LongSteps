@@ -1,4 +1,5 @@
 
+requires 'Action::Retry' , '>= 0.24';
 requires 'Data::UUID' , '>= 1.220';
 requires 'DateTime' , '>= 1.18';
 requires 'DateTime::Format::ISO8601', '>= 0.08';
@@ -9,3 +10,4 @@ requires 'Scope::Guard', '>= 0.21';
 
 test_requires 'Test::More';
 test_requires 'Test::MockDateTime';
+test_requires 'Test::MockModule';
