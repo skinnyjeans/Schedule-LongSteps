@@ -8,6 +8,7 @@ requires 'Moose' , '>= 2.1405';
 requires 'Class::Load';
 requires 'Scope::Guard', '>= 0.21';
 
+test_requires 'Test::Exception';
 test_requires 'Test::More';
 test_requires 'Test::MockDateTime';
 test_requires 'Test::MockModule';
