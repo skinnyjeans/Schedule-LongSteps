@@ -300,11 +300,11 @@ sub _state_decode{
     my ($self, $dynamo_state) = @_;
     if( $dynamo_state =~ /^{/ ){
         # Assume JSON
-        return JSON::from_json( $dynamo_state );
+        return JSON::decode_json( $dynamo_state );
     }
 
     # Assume base64 encoded memGunzip
-    return JSON::from_json( Compress::Zlib::memGunzip( MIME::Base64::decode_base64( $dynamo_state ) ) );
+    return JSON::decode_json( Compress::Zlib::memGunzip( MIME::Base64::decode_base64( $dynamo_state ) ) );
 }
 
 sub _process_from_attrmap{
@@ -486,9 +486,8 @@ sub _insert{
 
 sub _state_encode{
     my ($self) = @_;
-    my $state_json = JSON::to_json(
-        $self->state(),
-        { ascii => 1 }
+    my $state_json = JSON::encode_json(
+        $self->state()
     );
     unless( length( $state_json ) > $MAX_DYNAMO_ITEM_SIZE ){
         $log->debug("Encoded state is ".substr( $state_json, 0 , 2000 ));
