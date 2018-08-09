@@ -38,7 +38,6 @@ sub prepare_due_processes{
     my $now = DateTime->now();
     my $uuid = $self->uuid()->create_str();
 
-    my @to_run = ();
     foreach my $process ( @{ $self->processes() } ){
         if( $process->run_at()
                 && !$process->run_id()
@@ -47,10 +46,22 @@ sub prepare_due_processes{
                 run_id => $uuid,
                 status => 'running'
             });
-            push @to_run , $process;
         }
     }
-    return @to_run;
+    return $self->retrieve_tagged_processes($uuid);
+}
+
+=head2 retrieve_tagged_processes
+
+See L<Schedule::LongSteps::Storage>
+
+=cut
+
+sub retrieve_tagged_processes {
+    my ($self, $run_id) = @_;
+    return () unless $run_id;
+    $log->info('Retrieving processes with '.$run_id );
+    return grep {($_->run_id() // '') eq $run_id } @{ $self->processes() };
 }
 
 =head2 find_process

@@ -360,6 +360,10 @@ and will be used to load the process, a blank context is used if not provided.
        ...
     }
 
+=head2 retrieve_tagged_processes
+
+Shortcut to $self->storage->retrieve_tagged_processes( $run_id );
+
 =head2 revive
 
 Revive a longstep process to a given step within a Longstep process.
@@ -502,6 +506,11 @@ sub load_process {
     my $stored_process = $self->find_process($pid);
     return unless $stored_process;
     return $self->_load_stored_process( $stored_process, $context );
+}
+
+sub retrieve_tagged_processes{
+    my ($self, $run_id) = @_;
+    return $self->storage()->retrieve_tagged_processes($run_id);
 }
 
 sub revive {

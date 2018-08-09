@@ -37,6 +37,18 @@ sub prepare_due_processes{
     die "Please implement this in $self";
 }
 
+
+=head2 retrieve_tagged_processes
+
+Retrive procceses tagged with for given run_id
+
+=cut
+
+sub retrieve_tagged_processes{
+    my ($self) = @_;
+    die "Please implement this in $self";
+}
+
 =head2 create_process
 
 Creates and return a new stored process.

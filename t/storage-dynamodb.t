@@ -4,6 +4,7 @@ use Test::More;
 
 use DateTime;
 use Class::Load;
+use Data::UUID;
 
 # use Log::Any::Adapter qw/Stderr/;
 
@@ -38,9 +39,10 @@ my $dynamo_db = Paws->service(
     max_attempts => 10,
     %{$dynamo_config}
 );
+my $test_dynamo_db_uuid = Data::UUID->new()->create_str();
 
-ok( my $storage = Schedule::LongSteps::Storage::DynamoDB->new({ dynamo_db => $dynamo_db, table_prefix => 'testdeletethis' }) );
-like( $storage->table_name() , qr/^testdeletethis_Schedule_LongSteps_Storage_DynamoDB/ );
+ok( my $storage = Schedule::LongSteps::Storage::DynamoDB->new({ dynamo_db => $dynamo_db, table_prefix => 'testdeletethis_' . $test_dynamo_db_uuid }) );
+like( $storage->table_name() , qr/^testdeletethis_${test_dynamo_db_uuid}_Schedule_LongSteps_Storage_DynamoDB/ );
 is( $storage->table_status() , undef ,"Ok no table exists remotely");
 ok( $storage->vivify_table() , "Ok can vivify table");
 
@@ -93,6 +95,9 @@ my @steps = $storage->prepare_due_processes({ concurrent_fiddle => sub{
                                           });
 
 is( scalar( @steps ) , 2, "Ok found 2 more to run");
+# why only 1 when the above returned two?, the above prepare_due_processes
+# uses concurrent_fiddle to only set a run_id of FIDDLE_RUN_ID if the id is 'PLEASE_FIDDLE_WITH_ME'
+is( scalar( $storage->retrieve_tagged_processes('FIDDLE_RUN_ID') ) , 1, "Ok found one processes with a run_id of FIDDLE_RUN_ID");
 
 foreach my $step ( @steps ){
     # While we are doing things, any other process would see zero things to do
