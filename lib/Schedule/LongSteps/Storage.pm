@@ -40,12 +40,12 @@ sub prepare_due_processes{
 
 =head2 retrieve_tagged_processes
 
-Retrive procceses tagged with for given run_id
+Retrive procceses for a given run_id
 
 =cut
 
 sub retrieve_tagged_processes{
-    my ($self) = @_;
+    my ($self, $run_id) = @_;
     die "Please implement this in $self";
 }
 
