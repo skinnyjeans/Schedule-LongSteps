@@ -258,6 +258,48 @@ sub prepare_due_processes{
     return @locked_processes;
 }
 
+=head2 retrieve_processes_by_run_id
+
+See L<Schedule::LongSteps::Storage>
+
+=cut
+
+sub retrieve_processes_by_run_id {
+    my ($self, $run_id) = @_;
+    return () unless $run_id;
+    $log->info('Retrieving processes with '.$run_id );
+
+    my $query_output;
+    my @found_items = ();
+    my $now = DateTime->now();
+    my $run_at_day = $now->clone()->truncate( to => 'day' );
+    do{
+        # Query the by_run_at_day index
+        $query_output = $self->dynamo_db()->Query(
+            TableName => $self->table_name(),
+            IndexName => 'by_run_at_day',
+            ConsistentRead => 0, # Consistent read are not supported on secondary indices.
+            ExpressionAttributeValues => {
+                ":run_at_day" => { "S" => substr( $run_at_day->iso8601() , 0 , 10 ) },
+                ":now" => { "S" => $now->iso8601().'Z' },
+                ":run_id" => { "S" => $run_id },
+            },
+            Limit => 20,
+            KeyConditionExpression => 'run_at_day = :run_at_day AND run_at <= :now',
+            FilterExpression => 'run_id = :run_id',
+        );
+
+        # Next we are going to look at the day before
+        $run_at_day->subtract( days => 1 )->truncate( to => 'day' );
+
+        $log->info("Got ".$query_output->Count()." results back for run_at_day = $run_at_day");
+        push @found_items , @{ $query_output->Items() };
+
+    } while( $query_output->Count() );
+
+    return @found_items
+}
+
 =head2 create_process
 
 See L<Schedule::LongSteps::Storage>

@@ -174,8 +174,21 @@ sub prepare_due_processes{
     $stuff->();
 
     # And return them as individual results.
-    return $rs->search({
-        run_id => $uuid,
+    return $self->retrieve_processes_by_run_id($uuid);
+}
+
+=head2 retrieve_processes_by_run_id
+
+See L<Schedule::LongSteps::Storage>
+
+=cut
+
+sub retrieve_processes_by_run_id {
+    my ($self, $run_id) = @_;
+    return () unless $run_id;
+    $log->info('Retrieving processes with '.$run_id );
+    return $self->_get_resultset()->search({
+        run_id => $run_id // '',
     })->all();
 }
 
