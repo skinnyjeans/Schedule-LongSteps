@@ -336,6 +336,21 @@ Usage:
 
 Returns the number of processes run
 
+=head2 run_processes
+
+Runs all the processes steps supplied. All processes
+are given the context to be built.
+
+Usage:
+
+ # No context given:
+ $this->run_processes({},@processes);
+
+ # With 'thing' as context:
+ $this->run_processes({ thing => ... },@processes);
+
+Returns the number of processes run
+
 =head2 instantiate_process
 
 Instantiate a stored process from the given process class returns a new process that will have an ID.
@@ -359,6 +374,10 @@ and will be used to load the process, a blank context is used if not provided.
     if( my $loaded_process = $self->load_process( $pid , $context ) ){
        ...
     }
+
+=head2 prepare_due_processes
+
+Shortcut to $self->storage->prepare_due_processes( $options );
 
 =head2 retrieve_processes_by_run_id
 
@@ -426,6 +445,11 @@ sub run_due_processes{
     $context ||= {};
 
     my @stored_processes = $self->storage->prepare_due_processes();
+    return $self->run_processes($context, @stored_processes);
+}
+
+sub run_processes{
+    my ($self, $context, @stored_processes) = @_;
     my $process_count = 0;
     foreach  my $stored_process ( @stored_processes ){
         my $process_method = $stored_process->what();
@@ -511,6 +535,11 @@ sub load_process {
 sub retrieve_processes_by_run_id{
     my ($self, $run_id) = @_;
     return $self->storage()->retrieve_processes_by_run_id($run_id);
+}
+
+sub prepare_due_processes{
+    my ($self, $options) = @_;
+    return $self->storage()->prepare_due_processes($options);
 }
 
 sub revive {
