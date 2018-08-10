@@ -22,7 +22,11 @@ sub _build_uuid{
 =head2 prepare_due_processes
 
 Mark the processes that are due to run as 'running' and
-returns an array of stored processes.
+returns an array of stored processes. A second options hashref parameter can be passed in,
+please check the storage class for any specific requirements.
+
+However all storage classes can take a 'run_id' as a hashref key and the value will be
+used instead of the default uuid.
 
 Users: Note that this is meant to be used by L<Schedule::LongSteps>, and not intended
 to be called directly.
@@ -33,7 +37,7 @@ a new process storage backend.
 =cut
 
 sub prepare_due_processes{
-    my ($self) = @_;
+    my ($self, $options) = @_;
     die "Please implement this in $self";
 }
 
