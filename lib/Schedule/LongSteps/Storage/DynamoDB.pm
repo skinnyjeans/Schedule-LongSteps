@@ -258,13 +258,13 @@ sub prepare_due_processes{
     return @locked_processes;
 }
 
-=head2 retrieve_tagged_processes
+=head2 retrieve_processes_by_run_id
 
 See L<Schedule::LongSteps::Storage>
 
 =cut
 
-sub retrieve_tagged_processes {
+sub retrieve_processes_by_run_id {
     my ($self, $run_id) = @_;
     return () unless $run_id;
     $log->info('Retrieving processes with '.$run_id );

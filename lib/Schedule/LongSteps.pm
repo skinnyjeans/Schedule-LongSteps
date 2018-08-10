@@ -360,9 +360,9 @@ and will be used to load the process, a blank context is used if not provided.
        ...
     }
 
-=head2 retrieve_tagged_processes
+=head2 retrieve_processes_by_run_id
 
-Shortcut to $self->storage->retrieve_tagged_processes( $run_id );
+Shortcut to $self->storage->retrieve_processes_by_run_id( $run_id );
 
 =head2 revive
 
@@ -508,9 +508,9 @@ sub load_process {
     return $self->_load_stored_process( $stored_process, $context );
 }
 
-sub retrieve_tagged_processes{
+sub retrieve_processes_by_run_id{
     my ($self, $run_id) = @_;
-    return $self->storage()->retrieve_tagged_processes($run_id);
+    return $self->storage()->retrieve_processes_by_run_id($run_id);
 }
 
 sub revive {

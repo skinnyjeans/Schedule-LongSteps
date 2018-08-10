@@ -38,13 +38,13 @@ sub prepare_due_processes{
 }
 
 
-=head2 retrieve_tagged_processes
+=head2 retrieve_processes_by_run_id
 
 Retrive procceses for a given run_id
 
 =cut
 
-sub retrieve_tagged_processes{
+sub retrieve_processes_by_run_id{
     my ($self, $run_id) = @_;
     die "Please implement this in $self";
 }

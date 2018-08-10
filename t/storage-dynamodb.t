@@ -97,7 +97,7 @@ my @steps = $storage->prepare_due_processes({ concurrent_fiddle => sub{
 is( scalar( @steps ) , 2, "Ok found 2 more to run");
 # why only 1 when the above returned two?, the above prepare_due_processes
 # uses concurrent_fiddle to only set a run_id of FIDDLE_RUN_ID if the id is 'PLEASE_FIDDLE_WITH_ME'
-is( scalar( $storage->retrieve_tagged_processes('FIDDLE_RUN_ID') ) , 1, "Ok found one processes with a run_id of FIDDLE_RUN_ID");
+is( scalar( $storage->retrieve_processes_by_run_id('FIDDLE_RUN_ID') ) , 1, "Ok found one processes with a run_id of FIDDLE_RUN_ID");
 
 foreach my $step ( @steps ){
     # While we are doing things, any other process would see zero things to do
