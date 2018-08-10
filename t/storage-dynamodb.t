@@ -82,17 +82,19 @@ $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at
 $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at =>  DateTime->now() });
 $storage->create_process({ process_class => 'Blabla', what => 'some_other_thing', run_at => DateTime->now() , id => 'PLEASE_FIDDLE_WITH_ME' });
 
-my @steps = $storage->prepare_due_processes({ concurrent_fiddle => sub{
-                                                  $storage->dynamo_db()->UpdateItem(
-                                                      TableName => $storage->table_name(),
-                                                      Key => { id => { S => 'PLEASE_FIDDLE_WITH_ME' } },
-                                                      ExpressionAttributeValues => {
-                                                          ':run_id' => { S => 'FIDDLE_RUN_ID' },
-                                                      },
-                                                      UpdateExpression => 'SET run_id = :run_id'
-                                                  );
-                                              }
-                                          });
+my @steps = $storage->prepare_due_processes({
+    concurrent_fiddle => sub{
+        $storage->dynamo_db()->UpdateItem(
+            TableName => $storage->table_name(),
+            Key => { id => { S => 'PLEASE_FIDDLE_WITH_ME' } },
+            ExpressionAttributeValues => {
+                ':run_id' => { S => 'FIDDLE_RUN_ID' },
+            },
+            UpdateExpression => 'SET run_id = :run_id'
+        );
+    },
+    run_id => 'i_am_a_teapot'
+});
 
 is( scalar( @steps ) , 2, "Ok found 2 more to run");
 # why only 1 when the above returned two?, the above prepare_due_processes
@@ -100,6 +102,7 @@ is( scalar( @steps ) , 2, "Ok found 2 more to run");
 is( scalar( $storage->retrieve_processes_by_run_id('FIDDLE_RUN_ID') ) , 1, "Ok found one processes with a run_id of FIDDLE_RUN_ID");
 
 foreach my $step ( @steps ){
+    is($step->run_id, 'i_am_a_teapot', 'prepare_due_process has the supplied run_id');
     # While we are doing things, any other process would see zero things to do
     ok(! scalar( $storage->prepare_due_processes()) , "Preparing steps again whilst they are running give zero steps");
 }

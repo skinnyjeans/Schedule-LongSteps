@@ -182,8 +182,7 @@ See L<Schedule::LongSteps::Storage>
 =cut
 
 sub prepare_due_processes{
-    my ($self, $options ) = @_;
-
+    my ($self, $options) = @_;
     $options ||= {};
 
     my $now = DateTime->now();
@@ -218,7 +217,7 @@ sub prepare_due_processes{
 
     # Of all the items found, we need to inject a run_id in those who dont have any yet
     # and return only those ones.
-    my $run_id = $self->uuid()->create_str();
+    my $run_id = $options->{run_id} || $self->uuid()->create_str();
     $log->info("Will set run_id=$run_id on due items");
     my @locked_processes;
 

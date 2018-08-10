@@ -146,13 +146,14 @@ See L<Schedule::LongSteps::Storage::DBIxClass>
 =cut
 
 sub prepare_due_processes{
-    my ($self) = @_;
+    my ($self, $options) = @_;
+    $options ||= {};
 
     my $now = DateTime->now();
     my $rs = $self->_get_resultset();
     my $dtf = $self->schema()->storage()->datetime_parser();
 
-    my $uuid = $self->uuid()->create_str();
+    my $uuid = $options->{run_id} || $self->uuid()->create_str();
     $log->info("Creating batch ID $uuid");
 
 

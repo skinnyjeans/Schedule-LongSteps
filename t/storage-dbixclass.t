@@ -63,7 +63,10 @@ my $dtf = $schema->storage()->datetime_parser();
 ok( my $process_id = $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) })->id(), "Ok got ID");
 ok( $storage->find_process($process_id) );
 
-is( scalar( $storage->prepare_due_processes() ) , 1 , "Ok one due step");
+my @processes_with_supplied_run_id = $storage->prepare_due_processes({run_id => 'i_am_a_teapot'});
+is( scalar( @processes_with_supplied_run_id ) , 1 , "Ok one due step");
+is($processes_with_supplied_run_id[0]->run_id, 'i_am_a_teapot', 'prepare_due_process has the supplied run_id');
+
 is( scalar( $storage->prepare_due_processes() ) , 0 , "Doing it again gives zero steps");
 
 my $process = $storage->create_process({ process_class => 'Blabla', what => 'whatever', run_at => $dtf->format_datetime( DateTime->now() ) });

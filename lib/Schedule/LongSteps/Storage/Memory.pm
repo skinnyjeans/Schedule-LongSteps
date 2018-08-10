@@ -33,10 +33,12 @@ See L<Schedule::LongSteps::Storage>
 =cut
 
 sub prepare_due_processes{
-    my ($self) = @_;
+    my ($self, $options) = @_;
+    $options ||= {};
 
     my $now = DateTime->now();
-    my $uuid = $self->uuid()->create_str();
+    my $uuid = $options->{run_id} || $self->uuid()->create_str();
+    $log->info("Creating batch ID $uuid");
 
     foreach my $process ( @{ $self->processes() } ){
         if( $process->run_at()
