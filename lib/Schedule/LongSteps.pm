@@ -90,7 +90,7 @@ First write a class to represent your long running set of steps
 
      .. Do some stuff and return the next step to execute ..
 
-      return $self->new_step({ what => 'do_stuff2', run_at => DateTime->... , state => { some => 'jsonable', hash => 'ref'  ]  });
+      return $self->new_step({ what => 'do_stuff2', run_at => DateTime->... , state => { some => 'jsonable', hash => 'ref'  }  });
   }
 
   sub do_stuff2{
