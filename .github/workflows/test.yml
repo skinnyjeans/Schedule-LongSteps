@@ -1,0 +1,37 @@
+name: CI Dzil
+ 
+on:
+    push:
+        branches: '*'
+    pull_request:
+        branches: '*'
+    schedule:
+        - cron: '42 5 * * 0'
+ 
+jobs:
+  perl-job:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        perl-version:
+          - 'latest'
+          - '5.30'
+          - "5.26"
+          - "5.20"
+          #- "5.18"
+          #- "5.16"
+          #- "5.14"
+
+    container:
+      image: perldocker/perl-tester:${{ matrix.perl-version }}     # https://hub.docker.com/r/perldocker/perl-tester
+    name: Perl ${{ matrix.perl-version }}
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v2
+      - name: Install Dependencies
+        run: |
+          dzil authordeps --missing | cpanm --notest
+          dzil listdeps --author --missing | cpanm --notest
+      - name: Run tests
+        run: dzil test --author --release
